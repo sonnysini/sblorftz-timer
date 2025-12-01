@@ -247,13 +247,35 @@ class _TimerScreenState extends State<TimerScreen> {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                   ),
-                Text(
-                  '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        color: isPaused
-                            ? Theme.of(context).colorScheme.primary.withOpacity(0.6)
-                            : null,
+                TweenAnimationBuilder<double>(
+                  key: ValueKey(remainingSeconds),
+                  duration: const Duration(milliseconds: 300),
+                  tween: Tween<double>(
+                    begin: remainingSeconds <= 10 && !isPaused ? 1.0 : 1.0,
+                    end: remainingSeconds <= 10 && !isPaused ? 1.15 : 1.0,
+                  ),
+                  curve: Curves.easeInOut,
+                  builder: (context, scale, child) {
+                    return Transform.scale(
+                      scale: scale,
+                      child: Text(
+                        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                              color: isPaused
+                                  ? Theme.of(context).colorScheme.primary.withOpacity(0.6)
+                                  : remainingSeconds <= 10
+                                      ? Colors.red
+                                      : null,
+                              fontSize: remainingSeconds <= 10 && !isPaused
+                                  ? (Theme.of(context).textTheme.displayLarge?.fontSize ?? 96) * 1.2
+                                  : null,
+                              fontWeight: remainingSeconds <= 10 && !isPaused
+                                  ? FontWeight.bold
+                                  : null,
+                            ),
                       ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 40),
                 Text(
