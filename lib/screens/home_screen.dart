@@ -1,0 +1,155 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../services/session_service.dart';
+import '../widgets/resume_popup.dart';
+import '../data/default_structure.dart';
+import 'editor_screen.dart';
+import 'timer_screen.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final SessionService _sessionService = SessionService();
+  final FocusNode _startButtonFocus = FocusNode();
+  final FocusNode _customizeButtonFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _startButtonFocus.dispose();
+    _customizeButtonFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkForSavedSession() async {
+    final hasSession = await _sessionService.hasSession();
+    if (hasSession && mounted) {
+      final session = await _sessionService.loadSession();
+      if (session != null && mounted) {
+        _showResumePopup(session);
+      }
+    } else {
+      // No saved session, start with default structure
+      _startTimerWithStructure(getDefaultStructure());
+    }
+  }
+
+  void _showResumePopup(session) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => ResumePopup(
+        session: session,
+        onResume: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => TimerScreen(
+                structure: session.structure,
+                initialLevelIndex: session.currentLevelIndex,
+                initialRemainingSeconds: session.remainingSeconds,
+              ),
+            ),
+          );
+        },
+        onNew: () async {
+          await _sessionService.clearSession();
+          if (mounted) {
+            Navigator.of(context).pop();
+            // Start timer with default structure
+            _startTimerWithStructure(getDefaultStructure());
+          }
+        },
+      ),
+    );
+  }
+
+  void _startTimerWithStructure(structure) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => TimerScreen(structure: structure),
+      ),
+    );
+  }
+
+  void _startTournament() {
+    // Check for saved session and show resume popup or start directly
+    _checkForSavedSession();
+  }
+
+  void _openEditor() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const EditorScreen(),
+      ),
+    );
+  }
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        _customizeButtonFocus.requestFocus();
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        _startButtonFocus.requestFocus();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: KeyboardListener(
+        focusNode: FocusNode()..requestFocus(),
+        autofocus: true,
+        onKeyEvent: _handleKeyEvent,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'SBLORFTZ TIMER',
+                style: Theme.of(context).textTheme.displaySmall,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '♠ ♥ ♣ ♦',
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+              ),
+              const SizedBox(height: 80),
+              ElevatedButton(
+                focusNode: _startButtonFocus,
+                autofocus: true,
+                onPressed: _startTournament,
+                child: const Text('▶ AVVIA TORNEO'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                focusNode: _customizeButtonFocus,
+                onPressed: _openEditor,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.surface,
+                  foregroundColor: Theme.of(context).colorScheme.primary,
+                ),
+                child: const Text('PERSONALIZZA'),
+              ),
+              const Spacer(),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 32),
+                child: Text(
+                  'v1.0',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
