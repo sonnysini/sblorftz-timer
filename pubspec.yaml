@@ -1,7 +1,7 @@
 name: sblorftz_timer
 description: Timer per tornei di poker per Android TV
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   shared_preferences: ^2.2.2
   audioplayers: ^5.2.1
+  wakelock_plus: ^1.2.8
 
 dev_dependencies:
   flutter_test:
@@ -23,3 +24,4 @@ flutter:
   assets:
     - assets/sounds/level_change.mp3
     - assets/sounds/one_minute.mp3
+    - assets/sounds/ten_seconds.mp3

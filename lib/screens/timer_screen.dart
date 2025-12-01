@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/blind_level.dart';
 import '../models/saved_session.dart';
 import '../services/audio_service.dart';
@@ -30,6 +31,7 @@ class _TimerScreenState extends State<TimerScreen> {
   final AudioService _audioService = AudioService();
   final SessionService _sessionService = SessionService();
   bool _oneMinuteWarningPlayed = false;
+  bool _tenSecondsWarningPlayed = false;
 
   @override
   void initState() {
@@ -41,6 +43,9 @@ class _TimerScreenState extends State<TimerScreen> {
     } else {
       remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
     }
+
+    // Attiva wakelock per mantenere lo schermo sempre acceso
+    WakelockPlus.enable();
 
     _startTimer();
   }
@@ -57,6 +62,11 @@ class _TimerScreenState extends State<TimerScreen> {
         if (remainingSeconds == 60 && !_oneMinuteWarningPlayed) {
           _audioService.playOneMinuteWarning();
           _oneMinuteWarningPlayed = true;
+        }
+
+        if (remainingSeconds == 10 && !_tenSecondsWarningPlayed) {
+          _audioService.playTenSecondsWarning();
+          _tenSecondsWarningPlayed = true;
         }
 
         if (remainingSeconds == 0) {
@@ -89,11 +99,14 @@ class _TimerScreenState extends State<TimerScreen> {
         currentLevelIndex++;
         remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
         _oneMinuteWarningPlayed = false;
+        _tenSecondsWarningPlayed = false;
       });
       _saveSession();
     } else {
+      // Torneo terminato: disattiva wakelock
       _sessionService.clearSession();
       _timer?.cancel();
+      WakelockPlus.disable();
     }
   }
 
@@ -103,6 +116,7 @@ class _TimerScreenState extends State<TimerScreen> {
         currentLevelIndex--;
         remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
         _oneMinuteWarningPlayed = false;
+        _tenSecondsWarningPlayed = false;
       });
       _saveSession();
     }
@@ -305,6 +319,8 @@ class _TimerScreenState extends State<TimerScreen> {
   void dispose() {
     _timer?.cancel();
     _audioService.dispose();
+    // Disattiva wakelock quando si esce dalla schermata
+    WakelockPlus.disable();
     super.dispose();
   }
 }

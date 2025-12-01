@@ -11,6 +11,14 @@ class AudioService {
     }
   }
 
+  Future<void> playTenSecondsWarning() async {
+    try {
+      await _player.play(AssetSource('sounds/ten_seconds.mp3'));
+    } catch (e) {
+      // Gestione errori silenziosa
+    }
+  }
+
   Future<void> playLevelChange() async {
     try {
       await _player.play(AssetSource('sounds/level_change.mp3'));
