@@ -52,6 +52,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 structure: session.structure,
                 initialLevelIndex: session.currentLevelIndex,
                 initialRemainingSeconds: session.remainingSeconds,
+                initialPreviousLevelIndex: session.previousLevelIndex,
+                initialPreviousRemainingSeconds: session.previousRemainingSeconds,
               ),
             ),
           );
@@ -142,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 32),
                 child: Text(
-                  'v1.02',
+                  'v1.1',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
