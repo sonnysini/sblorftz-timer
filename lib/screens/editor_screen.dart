@@ -4,6 +4,7 @@ import '../data/default_structure.dart';
 import '../widgets/smart_input_popup.dart';
 import '../widgets/confirm_popup.dart';
 import '../widgets/add_level_popup.dart';
+import '../widgets/focusable_button.dart';
 import 'timer_screen.dart';
 
 class EditorScreen extends StatefulWidget {
@@ -201,17 +202,14 @@ class _EditorScreenState extends State<EditorScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton(
+                FocusableButton(
+                  text: '+ AGGIUNGI LIVELLO',
                   onPressed: _addLevel,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                  ),
-                  child: const Text('+ AGGIUNGI LIVELLO'),
                 ),
-                ElevatedButton(
+                FocusableButton(
+                  text: '▶ AVVIA TIMER',
                   onPressed: _startTimer,
-                  child: const Text('▶ AVVIA TIMER'),
+                  autofocus: true,
                 ),
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/saved_session.dart';
+import 'focusable_button.dart';
 
 class ResumePopup extends StatelessWidget {
   final SavedSession session;
@@ -47,19 +48,15 @@ class ResumePopup extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
+                  FocusableButton(
+                    text: 'RIPRENDI',
                     autofocus: true,
                     onPressed: onResume,
-                    child: const Text('RIPRENDI'),
                   ),
                   const SizedBox(width: 16),
-                  ElevatedButton(
+                  FocusableButton(
+                    text: 'NUOVO',
                     onPressed: onNew,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                    ),
-                    child: const Text('NUOVO'),
                   ),
                 ],
               ),

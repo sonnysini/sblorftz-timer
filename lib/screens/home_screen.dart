@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/session_service.dart';
 import '../widgets/resume_popup.dart';
+import '../widgets/focusable_button.dart';
 import '../data/default_structure.dart';
 import 'editor_screen.dart';
 import 'timer_screen.dart';
@@ -124,27 +125,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
               ),
               const SizedBox(height: 80),
-              ElevatedButton(
+              FocusableButton(
+                text: '▶ AVVIA TORNEO',
                 focusNode: _startButtonFocus,
                 autofocus: true,
                 onPressed: _startTournament,
-                child: const Text('▶ AVVIA TORNEO'),
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
+              FocusableButton(
+                text: 'PERSONALIZZA',
                 focusNode: _customizeButtonFocus,
                 onPressed: _openEditor,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                ),
-                child: const Text('PERSONALIZZA'),
               ),
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.only(bottom: 32),
                 child: Text(
-                  'v1.1',
+                  'v1.1.1',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),

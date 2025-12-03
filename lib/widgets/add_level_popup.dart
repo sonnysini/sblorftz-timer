@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'focusable_button.dart';
 
 class AddLevelPopup extends StatefulWidget {
   final int levelNumber;
@@ -54,9 +55,10 @@ class _AddLevelPopupState extends State<AddLevelPopup> {
             const SizedBox(height: 12),
             _buildRow('Durata:', duration, isDuration: true),
             const SizedBox(height: 32),
-            ElevatedButton(
+            FocusableButton(
+              text: 'AGGIUNGI',
               onPressed: () => widget.onAdd(smallBlind, bigBlind, duration),
-              child: const Text('AGGIUNGI'),
+              autofocus: true,
             ),
           ],
         ),

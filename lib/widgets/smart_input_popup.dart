@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/blind_level.dart';
+import 'focusable_button.dart';
 
 class SmartInputPopup extends StatelessWidget {
   final String title;
@@ -74,19 +75,11 @@ class SmartInputPopup extends StatelessWidget {
               itemCount: suggestions.length,
               itemBuilder: (context, index) {
                 final value = suggestions[index];
-                final isSelected = value == currentValue;
 
-                return ElevatedButton(
+                return FocusableButton(
+                  text: value.toString(),
+                  autofocus: index == 0,
                   onPressed: () => onConfirm(value),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isSelected
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surface,
-                    foregroundColor: isSelected
-                        ? Theme.of(context).scaffoldBackgroundColor
-                        : Theme.of(context).colorScheme.primary,
-                  ),
-                  child: Text(value.toString()),
                 );
               },
             ),

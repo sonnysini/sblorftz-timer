@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'focusable_button.dart';
 
 class ConfirmPopup extends StatelessWidget {
   final String title;
@@ -42,22 +43,17 @@ class ConfirmPopup extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
+                  FocusableButton(
+                    text: 'NO',
                     autofocus: true,
                     onPressed: onCancel,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                    ),
-                    child: const Text('NO'),
                   ),
                   const SizedBox(width: 16),
-                  ElevatedButton(
+                  FocusableButton(
+                    text: 'SÌ',
                     onPressed: onConfirm,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).colorScheme.error,
-                    ),
-                    child: const Text('SÌ'),
+                    customBackgroundColor: Theme.of(context).colorScheme.error,
+                    customForegroundColor: Theme.of(context).colorScheme.onError,
                   ),
                 ],
               ),

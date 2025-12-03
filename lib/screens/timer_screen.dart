@@ -6,6 +6,7 @@ import '../models/blind_level.dart';
 import '../models/saved_session.dart';
 import '../services/audio_service.dart';
 import '../services/session_service.dart';
+import '../widgets/focusable_button.dart';
 
 class TimerScreen extends StatefulWidget {
   final List<BlindLevel> structure;
@@ -37,21 +38,26 @@ class _TimerScreenState extends State<TimerScreen> {
   bool _oneMinuteWarningPlayed = false;
   bool _tenSecondsWarningPlayed = false;
 
-  // Stato precedente (per undo)
-  int? _previousLevelIndex;
-  int? _previousRemainingSeconds;
+  // Checkpoint per undo bidirezionale
+  int? _checkpointLevelIndex;
+  int? _checkpointRemainingSeconds;
 
   // Pressione prolungata
   DateTime? _forwardPressStartTime;
   DateTime? _backwardPressStartTime;
+  DateTime? _playPausePressStartTime;
   bool _isLongPressingForward = false;
   bool _isLongPressingBackward = false;
+  bool _isLongPressingPlayPause = false;
   Timer? _longPressCheckTimer;
   double _longPressProgress = 0.0;
+  bool _isExitDialogOpen = false;
+  late FocusNode _mainFocusNode;
 
   @override
   void initState() {
     super.initState();
+    _mainFocusNode = FocusNode();
     currentLevelIndex = widget.initialLevelIndex;
 
     if (widget.initialRemainingSeconds > 0) {
@@ -60,9 +66,9 @@ class _TimerScreenState extends State<TimerScreen> {
       remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
     }
 
-    // Carica stato precedente se disponibile
-    _previousLevelIndex = widget.initialPreviousLevelIndex;
-    _previousRemainingSeconds = widget.initialPreviousRemainingSeconds;
+    // Carica checkpoint se disponibile
+    _checkpointLevelIndex = widget.initialPreviousLevelIndex;
+    _checkpointRemainingSeconds = widget.initialPreviousRemainingSeconds;
 
     // Attiva wakelock per mantenere lo schermo sempre acceso
     WakelockPlus.enable();
@@ -130,26 +136,14 @@ class _TimerScreenState extends State<TimerScreen> {
     }
   }
 
-  void _previousLevel() {
-    if (currentLevelIndex > 0) {
-      setState(() {
-        currentLevelIndex--;
-        remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
-        _oneMinuteWarningPlayed = false;
-        _tenSecondsWarningPlayed = false;
-      });
-      _saveSession();
-    }
-  }
-
   Future<void> _saveSession() async {
     final session = SavedSession(
       currentLevelIndex: currentLevelIndex,
       remainingSeconds: remainingSeconds,
       structure: widget.structure,
       savedAt: DateTime.now(),
-      previousLevelIndex: _previousLevelIndex,
-      previousRemainingSeconds: _previousRemainingSeconds,
+      previousLevelIndex: _checkpointLevelIndex,
+      previousRemainingSeconds: _checkpointRemainingSeconds,
     );
     await _sessionService.saveSession(session);
   }
@@ -178,28 +172,47 @@ class _TimerScreenState extends State<TimerScreen> {
     _startLongPressCheckTimer();
   }
 
+  void _startLongPressPlayPause() {
+    setState(() {
+      _playPausePressStartTime = DateTime.now();
+      _isLongPressingPlayPause = true;
+      _longPressProgress = 0.0;
+    });
+    _startLongPressCheckTimer();
+  }
+
   void _startLongPressCheckTimer() {
     _longPressCheckTimer?.cancel();
     _longPressCheckTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       if (_isLongPressingForward && _forwardPressStartTime != null) {
         final elapsed = DateTime.now().difference(_forwardPressStartTime!).inMilliseconds;
         setState(() {
-          _longPressProgress = elapsed / 3000.0;
+          _longPressProgress = elapsed / 1500.0;
         });
 
-        if (elapsed >= 3000) {
+        if (elapsed >= 1500) {
           _cancelLongPress();
           _manualNextLevel();
         }
       } else if (_isLongPressingBackward && _backwardPressStartTime != null) {
         final elapsed = DateTime.now().difference(_backwardPressStartTime!).inMilliseconds;
         setState(() {
-          _longPressProgress = elapsed / 3000.0;
+          _longPressProgress = elapsed / 1500.0;
         });
 
-        if (elapsed >= 3000) {
+        if (elapsed >= 1500) {
           _cancelLongPress();
           _manualPreviousLevel();
+        }
+      } else if (_isLongPressingPlayPause && _playPausePressStartTime != null) {
+        final elapsed = DateTime.now().difference(_playPausePressStartTime!).inMilliseconds;
+        setState(() {
+          _longPressProgress = elapsed / 1500.0;
+        });
+
+        if (elapsed >= 1500) {
+          _cancelLongPress();
+          _resetCurrentLevel();
         }
       }
     });
@@ -209,8 +222,10 @@ class _TimerScreenState extends State<TimerScreen> {
     setState(() {
       _forwardPressStartTime = null;
       _backwardPressStartTime = null;
+      _playPausePressStartTime = null;
       _isLongPressingForward = false;
       _isLongPressingBackward = false;
+      _isLongPressingPlayPause = false;
       _longPressProgress = 0.0;
     });
     _longPressCheckTimer?.cancel();
@@ -218,30 +233,71 @@ class _TimerScreenState extends State<TimerScreen> {
 
   void _manualNextLevel() {
     if (currentLevelIndex < widget.structure.length - 1) {
-      // Salva lo stato corrente prima di cambiare
-      setState(() {
-        _previousLevelIndex = currentLevelIndex;
-        _previousRemainingSeconds = remainingSeconds;
+      final nextLevelIndex = currentLevelIndex + 1;
 
-        currentLevelIndex++;
-        remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
-        _oneMinuteWarningPlayed = false;
-        _tenSecondsWarningPlayed = false;
-      });
+      // Se esiste un checkpoint al livello successivo, ripristinalo
+      if (_checkpointLevelIndex == nextLevelIndex && _checkpointRemainingSeconds != null) {
+        setState(() {
+          currentLevelIndex = _checkpointLevelIndex!;
+          remainingSeconds = _checkpointRemainingSeconds!;
+          _checkpointLevelIndex = null;
+          _checkpointRemainingSeconds = null;
+          _oneMinuteWarningPlayed = false;
+          _tenSecondsWarningPlayed = false;
+        });
+      } else {
+        // Altrimenti salva checkpoint corrente e vai al livello successivo con tempo pieno
+        setState(() {
+          _checkpointLevelIndex = currentLevelIndex;
+          _checkpointRemainingSeconds = remainingSeconds;
+
+          currentLevelIndex++;
+          remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
+          _oneMinuteWarningPlayed = false;
+          _tenSecondsWarningPlayed = false;
+        });
+      }
+
       _audioService.playLevelChange();
       _saveSession();
     }
   }
 
   void _manualPreviousLevel() {
-    // Controlla se esiste uno stato precedente salvato
-    if (_previousLevelIndex == null || _previousRemainingSeconds == null) return;
+    if (currentLevelIndex > 0) {
+      final prevLevelIndex = currentLevelIndex - 1;
 
+      // Se esiste un checkpoint al livello precedente, ripristinalo
+      if (_checkpointLevelIndex == prevLevelIndex && _checkpointRemainingSeconds != null) {
+        setState(() {
+          currentLevelIndex = _checkpointLevelIndex!;
+          remainingSeconds = _checkpointRemainingSeconds!;
+          _checkpointLevelIndex = null;
+          _checkpointRemainingSeconds = null;
+          _oneMinuteWarningPlayed = false;
+          _tenSecondsWarningPlayed = false;
+        });
+      } else {
+        // Altrimenti salva checkpoint corrente e vai al livello precedente con tempo pieno
+        setState(() {
+          _checkpointLevelIndex = currentLevelIndex;
+          _checkpointRemainingSeconds = remainingSeconds;
+
+          currentLevelIndex--;
+          remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
+          _oneMinuteWarningPlayed = false;
+          _tenSecondsWarningPlayed = false;
+        });
+      }
+
+      _audioService.playLevelChange();
+      _saveSession();
+    }
+  }
+
+  void _resetCurrentLevel() {
     setState(() {
-      currentLevelIndex = _previousLevelIndex!;
-      remainingSeconds = _previousRemainingSeconds!;
-      _previousLevelIndex = null;
-      _previousRemainingSeconds = null;
+      remainingSeconds = widget.structure[currentLevelIndex].durationMinutes * 60;
       _oneMinuteWarningPlayed = false;
       _tenSecondsWarningPlayed = false;
     });
@@ -250,7 +306,13 @@ class _TimerScreenState extends State<TimerScreen> {
   }
 
   void _showExitDialog() {
-    _pauseTimer();
+    setState(() {
+      _isExitDialogOpen = true;
+    });
+
+    // Rimuovi il focus dal KeyboardListener principale
+    _mainFocusNode.unfocus();
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -258,7 +320,13 @@ class _TimerScreenState extends State<TimerScreen> {
         canPop: true,
         onPopInvokedWithResult: (didPop, result) {
           if (didPop) {
-            _startTimer();
+            setState(() {
+              _isExitDialogOpen = false;
+            });
+            // Ripristina il focus al KeyboardListener principale
+            if (mounted) {
+              _mainFocusNode.requestFocus();
+            }
           }
         },
         child: FocusScope(
@@ -279,28 +347,30 @@ class _TimerScreenState extends State<TimerScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ElevatedButton(
+                      FocusableButton(
+                        text: 'CONTINUA',
                         autofocus: true,
                         onPressed: () {
+                          setState(() {
+                            _isExitDialogOpen = false;
+                          });
                           Navigator.of(context).pop();
-                          _startTimer();
+                          // Il focus verrà ripristinato in onPopInvokedWithResult
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.surface,
-                          foregroundColor: Theme.of(context).colorScheme.primary,
-                        ),
-                        child: const Text('CONTINUA'),
                       ),
                       const SizedBox(width: 16),
-                      ElevatedButton(
+                      FocusableButton(
+                        text: 'ESCI',
                         onPressed: () async {
+                          setState(() {
+                            _isExitDialogOpen = false;
+                          });
                           await _saveSession();
                           if (mounted) {
                             Navigator.of(context).pop();
                             Navigator.of(context).pop();
                           }
                         },
-                        child: const Text('ESCI'),
                       ),
                     ],
                   ),
@@ -310,7 +380,15 @@ class _TimerScreenState extends State<TimerScreen> {
           ),
         ),
       ),
-    );
+    ).then((_) {
+      // Assicurati che il flag sia resettato anche se il dialog viene chiuso in altri modi
+      if (mounted) {
+        setState(() {
+          _isExitDialogOpen = false;
+        });
+        _mainFocusNode.requestFocus();
+      }
+    });
   }
 
   @override
@@ -331,15 +409,18 @@ class _TimerScreenState extends State<TimerScreen> {
         }
       },
       child: KeyboardListener(
-        focusNode: FocusNode()..requestFocus(),
+        focusNode: _mainFocusNode,
         autofocus: true,
         onKeyEvent: (event) {
+          // Ignora eventi se il dialog di uscita è aperto
+          if (_isExitDialogOpen) return;
+
           if (event is KeyDownEvent) {
             if (event.logicalKey == LogicalKeyboardKey.mediaPlayPause ||
                 event.logicalKey == LogicalKeyboardKey.select) {
-              // Toggle pausa (comportamento immediato)
-              if (!_isLongPressingForward && !_isLongPressingBackward) {
-                _togglePause();
+              // Avvia pressione prolungata per reset (se non già in long press)
+              if (!_isLongPressingPlayPause && !_isLongPressingForward && !_isLongPressingBackward) {
+                _startLongPressPlayPause();
               }
             } else if (event.logicalKey == LogicalKeyboardKey.mediaFastForward ||
                 event.logicalKey == LogicalKeyboardKey.arrowRight) {
@@ -355,8 +436,18 @@ class _TimerScreenState extends State<TimerScreen> {
               }
             }
           } else if (event is KeyUpEvent) {
-            // Cancella pressione prolungata se rilasciato prima dei 3 secondi
-            if (event.logicalKey == LogicalKeyboardKey.mediaFastForward ||
+            // Cancella pressione prolungata se rilasciato prima di 1.5 secondi
+            if (event.logicalKey == LogicalKeyboardKey.mediaPlayPause ||
+                event.logicalKey == LogicalKeyboardKey.select) {
+              // Se era in attesa di long press, cancella e toggle pause
+              if (_isLongPressingPlayPause) {
+                _cancelLongPress();
+                if (!_isLongPressingForward && !_isLongPressingBackward) {
+                  _togglePause();
+                }
+              }
+              // Altrimenti il long press è già stato eseguito, non fare nulla
+            } else if (event.logicalKey == LogicalKeyboardKey.mediaFastForward ||
                 event.logicalKey == LogicalKeyboardKey.arrowRight) {
               if (_isLongPressingForward) {
                 _cancelLongPress();
@@ -510,7 +601,9 @@ class _TimerScreenState extends State<TimerScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'CAMBIO LIVELLO IN CORSO...',
+                        _isLongPressingPlayPause
+                            ? 'RESET TEMPO IN CORSO...'
+                            : 'CAMBIO LIVELLO IN CORSO...',
                         style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                               color: Theme.of(context).colorScheme.primary,
                             ),
@@ -547,6 +640,7 @@ class _TimerScreenState extends State<TimerScreen> {
     _timer?.cancel();
     _longPressCheckTimer?.cancel();
     _audioService.dispose();
+    _mainFocusNode.dispose();
     // Disattiva wakelock quando si esce dalla schermata
     WakelockPlus.disable();
     super.dispose();
