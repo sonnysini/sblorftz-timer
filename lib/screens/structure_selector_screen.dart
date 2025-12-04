@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/structure_service.dart';
 import '../widgets/structure_card.dart';
-import 'custom_editor_screen.dart';
+import 'custom_placeholder_screen.dart';
 
 class StructureSelectorScreen extends StatefulWidget {
   const StructureSelectorScreen({super.key});
@@ -12,16 +12,20 @@ class StructureSelectorScreen extends StatefulWidget {
 
 class _StructureSelectorScreenState extends State<StructureSelectorScreen> {
   final StructureService _structureService = StructureService();
-  final List<FocusNode> _focusNodes = List.generate(3, (_) => FocusNode());
+  late final List<FocusNode> _focusNodes;
 
   String _selectedType = StructureService.typeStandard;
   int _customLevelCount = 0;
   int _customTotalMinutes = 0;
   String _customStartingBlinds = '0/0';
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    // Inizializza i FocusNode in initState invece che nel campo
+    _focusNodes = List.generate(3, (_) => FocusNode());
+    // Carica i dati dopo l'inizializzazione
     _loadData();
   }
 
@@ -34,15 +38,34 @@ class _StructureSelectorScreenState extends State<StructureSelectorScreen> {
   }
 
   Future<void> _loadData() async {
-    final selectedType = await _structureService.getSelectedType();
-    final customStructure = await _structureService.getCustomStructure();
+    try {
+      final selectedType = await _structureService.getSelectedType();
+      final customStructure = await _structureService.getCustomStructure();
 
-    setState(() {
-      _selectedType = selectedType;
-      _customLevelCount = customStructure.length;
-      _customTotalMinutes = _structureService.getTotalDuration(customStructure);
-      _customStartingBlinds = _structureService.getStartingBlinds(customStructure);
-    });
+      if (mounted) {
+        setState(() {
+          _selectedType = selectedType;
+          _customLevelCount = customStructure.length;
+          _customTotalMinutes = _structureService.getTotalDuration(customStructure);
+          _customStartingBlinds = _structureService.getStartingBlinds(customStructure);
+          _isLoading = false;
+        });
+
+        // Richiedi il focus dopo che tutto è caricato (importante per Fire TV)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _focusNodes[0].canRequestFocus) {
+            _focusNodes[0].requestFocus();
+          }
+        });
+      }
+    } catch (e) {
+      // Gestione errori per evitare crash
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _selectStructure(String type) async {
@@ -69,16 +92,11 @@ class _StructureSelectorScreenState extends State<StructureSelectorScreen> {
   }
 
   Future<void> _openCustomEditor() async {
-    final result = await Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const CustomEditorScreen(),
+        builder: (context) => const CustomPlaceholderScreen(),
       ),
     );
-
-    // Ricarica i dati se l'editor ha salvato
-    if (result == true) {
-      await _loadData();
-    }
   }
 
 
@@ -119,13 +137,17 @@ class _StructureSelectorScreenState extends State<StructureSelectorScreen> {
               const SizedBox(height: 24),
               // Cards
               Expanded(
-                child: Center(
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 800),
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : Center(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 800),
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
                         // STANDARD
                         StructureCard(
                           icon: '★',
@@ -133,7 +155,7 @@ class _StructureSelectorScreenState extends State<StructureSelectorScreen> {
                           description: '18 livelli · 100/200 start · 15-10 min',
                           isSelected: _selectedType == StructureService.typeStandard,
                           focusNode: _focusNodes[0],
-                          autofocus: true,
+                          autofocus: false,
                           onPressed: () => _selectStructure(StructureService.typeStandard),
                         ),
                         const SizedBox(height: 16),

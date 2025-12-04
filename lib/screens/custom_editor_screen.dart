@@ -19,6 +19,7 @@ class _CustomEditorScreenState extends State<CustomEditorScreen> {
   List<BlindLevel> _levels = [];
   List<BlindLevel> _originalLevels = [];
   bool _hasUnsavedChanges = false;
+  bool _isLoading = true;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -35,12 +36,23 @@ class _CustomEditorScreenState extends State<CustomEditorScreen> {
   }
 
   Future<void> _loadStructure() async {
-    final structure = await _structureService.getCustomStructure();
-    setState(() {
-      _levels = List.from(structure);
-      _originalLevels = List.from(structure);
-      _hasUnsavedChanges = false;
-    });
+    try {
+      final structure = await _structureService.getCustomStructure();
+      if (mounted) {
+        setState(() {
+          _levels = List.from(structure);
+          _originalLevels = List.from(structure);
+          _hasUnsavedChanges = false;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   void _markAsChanged() {
@@ -368,7 +380,11 @@ class _CustomEditorScreenState extends State<CustomEditorScreen> {
               ),
               // Lista livelli o messaggio vuoto
               Expanded(
-                child: _levels.isEmpty
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    : _levels.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,

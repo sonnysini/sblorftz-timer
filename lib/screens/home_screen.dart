@@ -17,13 +17,23 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final SessionService _sessionService = SessionService();
   final StructureService _structureService = StructureService();
-  final FocusNode _startButtonFocus = FocusNode();
-  final FocusNode _customizeButtonFocus = FocusNode();
+  late final FocusNode _startButtonFocus;
+  late final FocusNode _customizeButtonFocus;
+  late final FocusNode _keyboardFocus;
+
+  @override
+  void initState() {
+    super.initState();
+    _startButtonFocus = FocusNode();
+    _customizeButtonFocus = FocusNode();
+    _keyboardFocus = FocusNode();
+  }
 
   @override
   void dispose() {
     _startButtonFocus.dispose();
     _customizeButtonFocus.dispose();
+    _keyboardFocus.dispose();
     super.dispose();
   }
 
@@ -109,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: KeyboardListener(
-        focusNode: FocusNode()..requestFocus(),
+        focusNode: _keyboardFocus,
         autofocus: true,
         onKeyEvent: _handleKeyEvent,
         child: Center(

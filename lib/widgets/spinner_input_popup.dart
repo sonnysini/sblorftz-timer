@@ -33,11 +33,26 @@ class SpinnerInputPopup extends StatefulWidget {
 
 class _SpinnerInputPopupState extends State<SpinnerInputPopup> {
   late int _currentValue;
+  late final FocusNode _focusNode;
 
   @override
   void initState() {
     super.initState();
     _currentValue = widget.initialValue;
+    _focusNode = FocusNode();
+
+    // Richiedi il focus dopo il primo frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _focusNode.canRequestFocus) {
+        _focusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   void _increment() {
@@ -79,8 +94,8 @@ class _SpinnerInputPopupState extends State<SpinnerInputPopup> {
     final canGoDown = widget.canDecrement(_currentValue);
 
     return KeyboardListener(
-      focusNode: FocusNode()..requestFocus(),
-      autofocus: true,
+      focusNode: _focusNode,
+      autofocus: false,
       onKeyEvent: _handleKeyEvent,
       child: Dialog(
         child: Container(
