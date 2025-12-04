@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/session_service.dart';
+import '../services/structure_service.dart';
 import '../widgets/resume_popup.dart';
 import '../widgets/focusable_button.dart';
-import '../data/default_structure.dart';
-import 'editor_screen.dart';
+import 'structure_selector_screen.dart';
 import 'timer_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final SessionService _sessionService = SessionService();
+  final StructureService _structureService = StructureService();
   final FocusNode _startButtonFocus = FocusNode();
   final FocusNode _customizeButtonFocus = FocusNode();
 
@@ -34,8 +35,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _showResumePopup(session);
       }
     } else {
-      // No saved session, start with default structure
-      _startTimerWithStructure(getDefaultStructure());
+      // No saved session, start with active structure
+      final structure = await _structureService.getActiveStructure();
+      _startTimerWithStructure(structure);
     }
   }
 
@@ -63,8 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
           await _sessionService.clearSession();
           if (mounted) {
             Navigator.of(context).pop();
-            // Start timer with default structure
-            _startTimerWithStructure(getDefaultStructure());
+            // Start timer with active structure
+            final structure = await _structureService.getActiveStructure();
+            _startTimerWithStructure(structure);
           }
         },
       ),
@@ -84,10 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkForSavedSession();
   }
 
-  void _openEditor() {
+  void _openStructureSelector() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const EditorScreen(),
+        builder: (context) => const StructureSelectorScreen(),
       ),
     );
   }
@@ -135,13 +138,13 @@ class _HomeScreenState extends State<HomeScreen> {
               FocusableButton(
                 text: 'PERSONALIZZA',
                 focusNode: _customizeButtonFocus,
-                onPressed: _openEditor,
+                onPressed: _openStructureSelector,
               ),
               const Spacer(),
               Padding(
                 padding: const EdgeInsets.only(bottom: 32),
                 child: Text(
-                  'v1.1.1',
+                  'v1.2.0',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
