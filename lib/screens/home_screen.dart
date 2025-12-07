@@ -141,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 32),
                 child: Text(
-                  'v1.1.1',
+                  'v1.2',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
