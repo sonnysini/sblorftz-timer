@@ -104,12 +104,19 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _deleteLevel(int index) {
     final level = structure[index];
+    final displayTitle = level.smallBlind == 0
+        ? 'Eliminare CAMBIO FICHES?'
+        : 'Eliminare il livello ${_getActualLevelNumber(index)}?';
+    final displaySubtitle = level.smallBlind == 0
+        ? '(5 min)'
+        : '(${level.smallBlind} / ${level.bigBlind})';
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => ConfirmPopup(
-        title: 'Eliminare il livello ${level.levelNumber}?',
-        subtitle: '(${level.smallBlind} / ${level.bigBlind})',
+        title: displayTitle,
+        subtitle: displaySubtitle,
         onConfirm: () {
           setState(() {
             structure.removeAt(index);
@@ -170,6 +177,17 @@ class _EditorScreenState extends State<EditorScreen> {
         builder: (context) => TimerScreen(structure: structure),
       ),
     );
+  }
+
+  // Calcola il numero del livello escludendo i cambio fiches (SB=0)
+  int _getActualLevelNumber(int index) {
+    int count = 0;
+    for (int i = 0; i <= index; i++) {
+      if (structure[i].smallBlind > 0) {
+        count++;
+      }
+    }
+    return count;
   }
 
   Widget _buildTableHeader() {
@@ -395,40 +413,47 @@ class _EditorScreenState extends State<EditorScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Livello
+            // Livello (non mostrare numero se è cambio fiches)
             Expanded(
               flex: 2,
               child: Text(
-                '${level.levelNumber}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            // Small Blind
-            Expanded(
-              flex: 3,
-              child: Text(
-                '${level.smallBlind}',
+                level.smallBlind == 0 ? '-' : '${_getActualLevelNumber(index)}',
                 style: TextStyle(
                   fontSize: 20,
-                  fontWeight: (isRowSelected && _isEditingRow && _selectedColumnIndex == 0)
-                      ? FontWeight.bold
-                      : FontWeight.normal,
-                  color: (isRowSelected && _isEditingRow && _selectedColumnIndex == 0)
-                      ? Colors.amber
-                      : isRowSelected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.onSurface.withOpacity(0.8),
+                  fontWeight: FontWeight.bold,
+                  color: level.smallBlind == 0
+                      ? theme.colorScheme.onSurface.withOpacity(0.3)
+                      : null,
                 ),
               ),
             ),
-            // Big Blind
+            // Small Blind (mostra "CAMBIO FICHES" se SB=0)
             Expanded(
               flex: 3,
               child: Text(
-                '${level.bigBlind}',
+                level.smallBlind == 0 ? 'CAMBIO FICHES' : '${level.smallBlind}',
+                style: TextStyle(
+                  fontSize: level.smallBlind == 0 ? 16 : 20,
+                  fontWeight: (isRowSelected && _isEditingRow && _selectedColumnIndex == 0)
+                      ? FontWeight.bold
+                      : level.smallBlind == 0
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                  color: level.smallBlind == 0
+                      ? Colors.orange
+                      : (isRowSelected && _isEditingRow && _selectedColumnIndex == 0)
+                          ? Colors.amber
+                          : isRowSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
+            ),
+            // Big Blind (mostra "-" se SB=0)
+            Expanded(
+              flex: 3,
+              child: Text(
+                level.smallBlind == 0 ? '-' : '${level.bigBlind}',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.normal,

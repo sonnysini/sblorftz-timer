@@ -305,6 +305,17 @@ class _TimerScreenState extends State<TimerScreen> {
     _saveSession();
   }
 
+  // Calcola il numero del livello escludendo i cambio fiches (SB=0)
+  int _getActualLevelNumber(int index) {
+    int count = 0;
+    for (int i = 0; i <= index; i++) {
+      if (widget.structure[i].smallBlind > 0) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   void _showExitDialog() {
     setState(() {
       _isExitDialogOpen = true;
@@ -467,11 +478,42 @@ class _TimerScreenState extends State<TimerScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      'LIVELLO ${currentLevel.levelNumber}',
-                      style: Theme.of(context).textTheme.displaySmall,
-                    ),
-                    const SizedBox(height: 40),
+                    // SE CAMBIO FICHES: mostra titolo e emoji sopra
+                    if (currentLevel.smallBlind == 0) ...[
+                      Text(
+                        'CAMBIO FICHES',
+                        style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      RichText(
+                        text: TextSpan(
+                          style: Theme.of(context).textTheme.headlineLarge,
+                          children: [
+                            const TextSpan(text: '⚫ 100  ➡️  '),
+                            TextSpan(
+                              text: '● 500',
+                              style: TextStyle(
+                                color: Colors.purple[300],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                    // SE LIVELLO NORMALE: mostra numero livello
+                    if (currentLevel.smallBlind > 0) ...[
+                      Text(
+                        'LIVELLO ${_getActualLevelNumber(currentLevelIndex)}',
+                        style: Theme.of(context).textTheme.displaySmall,
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                    // PAUSA (se attivo)
                     if (isPaused)
                       TweenAnimationBuilder<double>(
                         duration: const Duration(milliseconds: 1000),
@@ -500,41 +542,44 @@ class _TimerScreenState extends State<TimerScreen> {
                           }
                         },
                       ),
-                TweenAnimationBuilder<double>(
-                  key: ValueKey(remainingSeconds),
-                  duration: const Duration(milliseconds: 300),
-                  tween: Tween<double>(
-                    begin: remainingSeconds <= 10 && !isPaused ? 1.0 : 1.0,
-                    end: remainingSeconds <= 10 && !isPaused ? 1.15 : 1.0,
-                  ),
-                  curve: Curves.easeInOut,
-                  builder: (context, scale, child) {
-                    return Transform.scale(
-                      scale: scale,
-                      child: Text(
-                        '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                        style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                              color: isPaused
-                                  ? Theme.of(context).colorScheme.primary.withOpacity(0.6)
-                                  : remainingSeconds <= 10
-                                      ? Colors.red
-                                      : null,
-                              fontSize: remainingSeconds <= 10 && !isPaused
-                                  ? (Theme.of(context).textTheme.displayLarge?.fontSize ?? 96) * 1.2
-                                  : null,
-                              fontWeight: remainingSeconds <= 10 && !isPaused
-                                  ? FontWeight.bold
-                                  : null,
-                            ),
+                    // TIMER
+                    TweenAnimationBuilder<double>(
+                      key: ValueKey(remainingSeconds),
+                      duration: const Duration(milliseconds: 300),
+                      tween: Tween<double>(
+                        begin: remainingSeconds <= 10 && !isPaused ? 1.0 : 1.0,
+                        end: remainingSeconds <= 10 && !isPaused ? 1.15 : 1.0,
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 40),
-                Text(
-                  '${currentLevel.smallBlind} / ${currentLevel.bigBlind}',
-                  style: Theme.of(context).textTheme.displayMedium,
-                ),
+                      curve: Curves.easeInOut,
+                      builder: (context, scale, child) {
+                        return Transform.scale(
+                          scale: scale,
+                          child: Text(
+                            '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
+                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                  color: isPaused
+                                      ? Theme.of(context).colorScheme.primary.withOpacity(0.6)
+                                      : remainingSeconds <= 10
+                                          ? Colors.red
+                                          : null,
+                                  fontSize: remainingSeconds <= 10 && !isPaused
+                                      ? (Theme.of(context).textTheme.displayLarge?.fontSize ?? 96) * 1.2
+                                      : null,
+                                  fontWeight: remainingSeconds <= 10 && !isPaused
+                                      ? FontWeight.bold
+                                      : null,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 40),
+                    // SE LIVELLO NORMALE: mostra i blind
+                    if (currentLevel.smallBlind > 0)
+                      Text(
+                        '${currentLevel.smallBlind} / ${currentLevel.bigBlind}',
+                        style: Theme.of(context).textTheme.displayMedium,
+                      ),
                 const SizedBox(height: 60),
                 Container(
                   height: 1,
@@ -545,7 +590,11 @@ class _TimerScreenState extends State<TimerScreen> {
                 const SizedBox(height: 20),
                 if (nextLevel != null)
                   Text(
-                    'PROSSIMO:  ${nextLevel.smallBlind} / ${nextLevel.bigBlind}',
+                    nextLevel.smallBlind == 0
+                        ? 'PROSSIMO:  CAMBIO FICHES'
+                        : currentLevel.smallBlind == 0
+                            ? 'PROSSIMO BUIO:  ${nextLevel.smallBlind} / ${nextLevel.bigBlind}'
+                            : 'PROSSIMO:  ${nextLevel.smallBlind} / ${nextLevel.bigBlind}',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
                         ),

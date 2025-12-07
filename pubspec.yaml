@@ -1,7 +1,7 @@
 name: sblorftz_timer
 description: Timer per tornei di poker per Android TV
 publish_to: 'none'
-version: 1.2.1+7
+version: 1.3.0+8
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
