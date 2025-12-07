@@ -106,8 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: KeyboardListener(
-        focusNode: FocusNode()..requestFocus(),
-        autofocus: true,
+        focusNode: FocusNode(),
+        autofocus: false,
         onKeyEvent: _handleKeyEvent,
         child: Center(
           child: Column(
@@ -141,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 32),
                 child: Text(
-                  'v1.2',
+                  'v1.2.1',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),

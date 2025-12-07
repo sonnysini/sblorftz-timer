@@ -29,6 +29,13 @@ class _EditorScreenState extends State<EditorScreen> {
     super.initState();
     structure = widget.initialStructure ?? getDefaultStructure();
     _rowFocusNodes = List.generate(structure.length, (_) => FocusNode());
+
+    // Richiedi il focus sulla prima riga dopo che il frame è stato costruito
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_rowFocusNodes.isNotEmpty) {
+        _rowFocusNodes[0].requestFocus();
+      }
+    });
   }
 
   @override
@@ -296,7 +303,6 @@ class _EditorScreenState extends State<EditorScreen> {
                     FocusableButton(
                       text: '▶ AVVIA TIMER',
                       onPressed: _startTimer,
-                      autofocus: true,
                     ),
                   ],
                 ),
