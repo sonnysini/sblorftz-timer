@@ -1,0 +1,15 @@
+{
+  "modules": [
+    {
+      "file_path": "android/app/src/main/kotlin/com/sblorftz/sblorftz_timer/MainActivity.kt",
+      "module_name": "MainActivity",
+      "function": "Classe principale Android che avvia l'applicazione Flutter Sblorftz Timer",
+      "key_methods": [
+        "FlutterActivity (ereditata)"
+      ],
+      "dependencies": [
+        "io.flutter.embedding.android.FlutterActivity"
+      ]
+    }
+  ]
+}
