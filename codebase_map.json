@@ -1,0 +1,238 @@
+{
+  "project_info": {
+    "name": "Sblorftz Timer",
+    "description": "Applicazione Flutter per timer di tornei di poker su Android TV",
+    "version": "1.3",
+    "platform": "Flutter/Dart + Android Native"
+  },
+  "modules": [
+    {
+      "file_path": "lib/main.dart",
+      "module_name": "SblorftzTimerApp",
+      "function": "Entry point dell'applicazione Flutter, configura UI immersiva e tema dark",
+      "key_methods": [
+        "main()",
+        "build()"
+      ],
+      "dependencies": [
+        "theme/app_theme.dart",
+        "screens/home_screen.dart"
+      ]
+    },
+    {
+      "file_path": "lib/models/blind_level.dart",
+      "module_name": "BlindLevel",
+      "function": "Modello dati per rappresentare un livello di bui nel torneo",
+      "key_methods": [
+        "toJson()",
+        "fromJson()",
+        "copyWith()"
+      ],
+      "dependencies": []
+    },
+    {
+      "file_path": "lib/models/saved_session.dart",
+      "module_name": "SavedSession",
+      "function": "Modello dati per salvare lo stato completo della sessione del torneo",
+      "key_methods": [
+        "toJson()",
+        "fromJson()"
+      ],
+      "dependencies": [
+        "models/blind_level.dart"
+      ]
+    },
+    {
+      "file_path": "lib/screens/home_screen.dart",
+      "module_name": "HomeScreen",
+      "function": "Schermata principale con menu per avviare torneo o accedere all'editor",
+      "key_methods": [
+        "_checkForSavedSession()",
+        "_startTournament()",
+        "_openEditor()"
+      ],
+      "dependencies": [
+        "services/session_service.dart",
+        "widgets/resume_popup.dart",
+        "widgets/focusable_button.dart",
+        "data/default_structure.dart",
+        "screens/editor_screen.dart",
+        "screens/timer_screen.dart"
+      ]
+    },
+    {
+      "file_path": "lib/screens/timer_screen.dart",
+      "module_name": "TimerScreen",
+      "function": "Schermata principale del timer con countdown, pause, avvisi audio e navigazione livelli",
+      "key_methods": [
+        "_startTimer()",
+        "_pauseTimer()",
+        "_nextLevel()",
+        "_manualNextLevel()",
+        "_manualPreviousLevel()",
+        "_resetCurrentLevel()",
+        "_saveSession()"
+      ],
+      "dependencies": [
+        "models/blind_level.dart",
+        "models/saved_session.dart",
+        "services/audio_service.dart",
+        "services/session_service.dart",
+        "widgets/focusable_button.dart"
+      ]
+    },
+    {
+      "file_path": "lib/screens/editor_screen.dart",
+      "module_name": "EditorScreen",
+      "function": "Editor per personalizzare la struttura del torneo con modifica livelli di bui",
+      "key_methods": [
+        "_editSmallBlind()",
+        "_editDuration()",
+        "_deleteLevel()",
+        "_addLevel()",
+        "_startTimer()"
+      ],
+      "dependencies": [
+        "models/blind_level.dart",
+        "data/default_structure.dart",
+        "widgets/smart_input_popup.dart",
+        "widgets/confirm_popup.dart",
+        "widgets/add_level_popup.dart",
+        "widgets/focusable_button.dart",
+        "screens/timer_screen.dart"
+      ]
+    },
+    {
+      "file_path": "lib/widgets/focusable_button.dart",
+      "module_name": "FocusableButton",
+      "function": "Bottone personalizzato con gestione focus per telecomando Android TV",
+      "key_methods": [
+        "build()",
+        "_onFocusChange()"
+      ],
+      "dependencies": []
+    },
+    {
+      "file_path": "lib/widgets/confirm_popup.dart",
+      "module_name": "ConfirmPopup",
+      "function": "Dialog di conferma generico con opzioni Sì/No",
+      "key_methods": [
+        "build()"
+      ],
+      "dependencies": [
+        "widgets/focusable_button.dart"
+      ]
+    },
+    {
+      "file_path": "lib/widgets/smart_input_popup.dart",
+      "module_name": "SmartInputPopup",
+      "function": "Dialog per input numerico con incremento/decremento tramite frecce direzionali",
+      "key_methods": [
+        "_incrementValue()",
+        "_decrementValue()",
+        "build()"
+      ],
+      "dependencies": [
+        "models/blind_level.dart",
+        "widgets/focusable_button.dart"
+      ]
+    },
+    {
+      "file_path": "lib/widgets/add_level_popup.dart",
+      "module_name": "AddLevelPopup",
+      "function": "Dialog per aggiungere un nuovo livello al torneo",
+      "key_methods": [
+        "build()",
+        "_buildRow()"
+      ],
+      "dependencies": [
+        "widgets/focusable_button.dart"
+      ]
+    },
+    {
+      "file_path": "lib/widgets/resume_popup.dart",
+      "module_name": "ResumePopup",
+      "function": "Dialog per riprendere una sessione salvata o iniziare un nuovo torneo",
+      "key_methods": [
+        "build()"
+      ],
+      "dependencies": [
+        "models/saved_session.dart",
+        "widgets/focusable_button.dart"
+      ]
+    },
+    {
+      "file_path": "lib/services/audio_service.dart",
+      "module_name": "AudioService",
+      "function": "Servizio per riprodurre suoni di avviso durante il torneo",
+      "key_methods": [
+        "playOneMinuteWarning()",
+        "playTenSecondsWarning()",
+        "playLevelChange()",
+        "dispose()"
+      ],
+      "dependencies": []
+    },
+    {
+      "file_path": "lib/services/session_service.dart",
+      "module_name": "SessionService",
+      "function": "Servizio per persistenza sessioni torneo tramite SharedPreferences",
+      "key_methods": [
+        "saveSession()",
+        "loadSession()",
+        "clearSession()",
+        "hasSession()"
+      ],
+      "dependencies": [
+        "models/saved_session.dart"
+      ]
+    },
+    {
+      "file_path": "lib/data/default_structure.dart",
+      "module_name": "DefaultStructure",
+      "function": "Fornisce struttura predefinita del torneo con 19 livelli e cambio fiches",
+      "key_methods": [
+        "getDefaultStructure()"
+      ],
+      "dependencies": [
+        "models/blind_level.dart"
+      ]
+    },
+    {
+      "file_path": "lib/theme/app_theme.dart",
+      "module_name": "AppTheme",
+      "function": "Definisce tema dark personalizzato con palette colori oro e nero",
+      "key_methods": [
+        "darkTheme"
+      ],
+      "dependencies": []
+    },
+    {
+      "file_path": "android/app/src/main/kotlin/com/sblorftz/sblorftz_timer/MainActivity.kt",
+      "module_name": "MainActivity",
+      "function": "Entry point Android nativo per avviare l'applicazione Flutter",
+      "key_methods": [
+        "FlutterActivity (ereditata)"
+      ],
+      "dependencies": [
+        "io.flutter.embedding.android.FlutterActivity"
+      ]
+    }
+  ],
+  "architecture_notes": {
+    "pattern": "MVVM con Service Layer",
+    "key_features": [
+      "Gestione persistenza sessioni con SharedPreferences",
+      "Audio feedback per eventi timer (1min, 10sec, cambio livello)",
+      "Navigazione ottimizzata per telecomando Android TV",
+      "Checkpoint bidirezionale per undo/redo livelli",
+      "Sistema cambio fiches dedicato (SB=0)",
+      "Wakelock per mantenere schermo sempre acceso durante torneo"
+    ],
+    "external_packages": [
+      "audioplayers",
+      "shared_preferences",
+      "wakelock_plus"
+    ]
+  }
+}
