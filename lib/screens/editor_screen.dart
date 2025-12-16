@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/blind_level.dart';
 import '../data/default_structure.dart';
+import '../services/structure_service.dart';
 import '../widgets/smart_input_popup.dart';
 import '../widgets/confirm_popup.dart';
 import '../widgets/add_level_popup.dart';
@@ -10,8 +11,13 @@ import 'timer_screen.dart';
 
 class EditorScreen extends StatefulWidget {
   final List<BlindLevel>? initialStructure;
+  final bool isCustomMode;
 
-  const EditorScreen({super.key, this.initialStructure});
+  const EditorScreen({
+    super.key,
+    this.initialStructure,
+    this.isCustomMode = false,
+  });
 
   @override
   State<EditorScreen> createState() => _EditorScreenState();
@@ -179,6 +185,26 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  Future<void> _saveCustomStructure() async {
+    if (structure.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aggiungi almeno un livello prima di salvare')),
+      );
+      return;
+    }
+
+    final structureService = StructureService();
+    await structureService.saveCustomStructure(structure);
+    await structureService.setSelectedType(StructureService.typeCustom);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Struttura CUSTOM salvata e selezionata')),
+      );
+      Navigator.of(context).pop(true); // Ritorna con successo
+    }
+  }
+
   // Calcola il numero del livello escludendo i cambio fiches (SB=0)
   int _getActualLevelNumber(int index) {
     int count = 0;
@@ -276,7 +302,7 @@ class _EditorScreenState extends State<EditorScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('STRUTTURA TORNEO'),
+        title: Text(widget.isCustomMode ? 'STRUTTURA CUSTOM' : 'STRUTTURA TORNEO'),
       ),
       body: Column(
         children: [
@@ -318,10 +344,16 @@ class _EditorScreenState extends State<EditorScreen> {
                       text: '+ AGGIUNGI LIVELLO',
                       onPressed: _addLevel,
                     ),
-                    FocusableButton(
-                      text: '▶ AVVIA TIMER',
-                      onPressed: _startTimer,
-                    ),
+                    if (widget.isCustomMode)
+                      FocusableButton(
+                        text: 'SALVA',
+                        onPressed: _saveCustomStructure,
+                      )
+                    else
+                      FocusableButton(
+                        text: '▶ AVVIA TIMER',
+                        onPressed: _startTimer,
+                      ),
                   ],
                 ),
               ),
