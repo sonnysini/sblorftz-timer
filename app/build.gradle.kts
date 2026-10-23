@@ -15,8 +15,8 @@ android {
         applicationId = "com.sblorftz.timer"
         minSdk = 23
         targetSdk = 35
-        versionCode = 22
-        versionName = "2.0.2"
+        versionCode = 23
+        versionName = "2.1.0"
     }
 
     buildTypes {

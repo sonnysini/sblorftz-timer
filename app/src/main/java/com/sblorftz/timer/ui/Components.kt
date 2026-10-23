@@ -3,6 +3,7 @@ package com.sblorftz.timer.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -165,7 +166,9 @@ fun Overlay(
     Box(
         Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.72f)),
+            .background(Color.Black.copy(alpha = 0.72f))
+            // Senza bottoni (es. download in corso) il focus lo tiene l'overlay, non lo schermo sotto.
+            .then(if (actions.isEmpty()) Modifier.focusRequester(first).focusable() else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -180,7 +183,7 @@ fun Overlay(
                 Spacer(Modifier.height(16.dp))
                 Text(subtitle, style = label(24, Palette.Muted, 0.02f, FontWeight.Medium), textAlign = TextAlign.Center)
             }
-            Spacer(Modifier.height(44.dp))
+            if (actions.isNotEmpty()) Spacer(Modifier.height(44.dp))
             if (vertical) {
                 Column(verticalArrangement = Arrangement.spacedBy(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     actions.forEachIndexed { i, a ->
