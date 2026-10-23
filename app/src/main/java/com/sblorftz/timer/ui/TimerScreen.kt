@@ -62,8 +62,9 @@ import com.sblorftz.timer.TournamentViewModel
 import com.sblorftz.timer.blindLevelCount
 import com.sblorftz.timer.displayNumber
 import com.sblorftz.timer.formatChips
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.delay
 
 private const val CLOCK_HEIGHT = 380
@@ -108,12 +109,12 @@ fun TimerScreen(
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                            if (down) vm.startHold(HoldAction.Previous)
+                            if (first) vm.startHold(HoldAction.Previous)
                             if (up) vm.cancelHold()
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                            if (down) vm.startHold(HoldAction.Next)
+                            if (first) vm.startHold(HoldAction.Next)
                             if (up) vm.cancelHold()
                             true
                         }
@@ -188,9 +189,11 @@ fun TimerScreen(
 
 @Composable
 private fun TopBar(vm: TournamentViewModel) {
-    val clock by produceState(LocalTime.now()) {
+    // niente java.time: su Android 7 (Fire TV Stick 4K) non esiste
+    val clockFormat = remember { SimpleDateFormat("HH:mm", Locale.ITALY) }
+    val clock by produceState(clockFormat.format(Date())) {
         while (true) {
-            value = LocalTime.now()
+            value = clockFormat.format(Date())
             delay(1_000)
         }
     }
@@ -210,7 +213,7 @@ private fun TopBar(vm: TournamentViewModel) {
                 MetaText("Livello ", "${structure.displayNumber(vm.levelIndex)}", " di ${structure.blindLevelCount()}")
             }
             MetaText("In gioco da ", formatDuration(vm.playedMs), "")
-            MetaText("", clock.format(DateTimeFormatter.ofPattern("HH:mm")), "")
+            MetaText("", clock, "")
         }
     }
 }
