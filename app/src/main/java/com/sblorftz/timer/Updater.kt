@@ -15,35 +15,57 @@ import java.net.URL
 /**
  * Aggiornamenti dall'app, come OpenTV: l'APK installato a mano non lo aggiorna nessuno.
  *
- * La repo è privata, quindi niente GitHub Releases: si legge un `latest.json` dalla
- * cartella pubblica del webdav (`tools/publish.sh` lo scrive insieme all'APK):
- *
- *     {"versionCode": 23, "versionName": "2.1.0", "apk": "sblorftz-timer-2.1.0.apk", "notes": "…"}
- *
- * Qualsiasi errore (niente rete, 404, json storto) vale "nessun aggiornamento": il
- * controllo non deve mai dar fastidio a chi apre l'app per giocare.
+ * Legge l'ultima Release GitHub (la crea la CI a ogni tag `vX.Y.Z`, vedi
+ * .github/workflows/release.yml) e la propone se il tag è più nuovo di [BuildConfig.VERSION_NAME].
+ * Qualsiasi errore (niente rete, limite API, nessuna release) vale "nessun aggiornamento":
+ * il controllo non deve mai dar fastidio a chi apre l'app per giocare.
  */
 object Updater {
-    const val BASE_URL = "https://files.sonnysini.it/Pubblico/sblorftz/"
+    const val REPO = "sonnysini/sblorftz-timer"
 
-    data class Update(val versionCode: Int, val versionName: String, val apkUrl: String, val notes: String)
+    data class Update(val versionName: String, val apkUrl: String, val notes: String)
 
     /** Una volta per avvio dell'app: "Più tardi" vale fino alla prossima apertura. */
     var checkedThisLaunch = false
 
     suspend fun check(): Update? = withContext(Dispatchers.IO) {
         runCatching {
-            val json = JSONObject(get(BASE_URL + "latest.json").use { it.readBytes().decodeToString() })
-            val code = json.getInt("versionCode")
-            if (code <= BuildConfig.VERSION_CODE) return@runCatching null
+            val release = JSONObject(get("https://api.github.com/repos/$REPO/releases/latest").use { it.readBytes().decodeToString() })
+            if (release.optBoolean("draft") || release.optBoolean("prerelease")) return@runCatching null
+            val tag = release.getString("tag_name")
+            if (!isNewer(tag, BuildConfig.VERSION_NAME)) return@runCatching null
+            val assets = release.getJSONArray("assets")
+            val apk = (0 until assets.length()).map { assets.getJSONObject(it) }
+                .firstOrNull { it.getString("name").endsWith(".apk") } ?: return@runCatching null
             Update(
-                versionCode = code,
-                versionName = json.getString("versionName"),
-                apkUrl = BASE_URL + json.getString("apk"),
-                notes = json.optString("notes"),
+                versionName = tag.trimStart('v', 'V'),
+                apkUrl = apk.getString("browser_download_url"),
+                notes = cleanNotes(release.optString("body")),
             )
         }.getOrNull()
     }
+
+    /** True se [tag] (es. `v2.0.1`) è una versione più alta di [current] (es. `2.0.0`). */
+    fun isNewer(tag: String, current: String): Boolean {
+        val a = parts(tag)
+        val b = parts(current)
+        for (i in 0 until maxOf(a.size, b.size)) {
+            val x = a.getOrElse(i) { 0 }
+            val y = b.getOrElse(i) { 0 }
+            if (x != y) return x > y
+        }
+        return false
+    }
+
+    private fun parts(v: String) = v.trim().trimStart('v', 'V').substringBefore('-')
+        .split('.').map { p -> p.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
+
+    /** Le note della release (sezione del CHANGELOG) senza Markdown né la riga finale della CI. */
+    private fun cleanNotes(raw: String) = raw.substringBefore("\n---").lines()
+        .map { it.trim().removePrefix("- ").removePrefix("* ").replace("**", "").replace("`", "") }
+        .filter { it.isNotEmpty() }
+        .joinToString(" · ")
+        .take(300)
 
     /** Scarica l'APK e apre l'installer di sistema. [progress] riceve 0..1. */
     suspend fun downloadAndInstall(context: Context, update: Update, progress: (Float) -> Unit) {
@@ -53,6 +75,8 @@ object Updater {
             dir.mkdirs()
             val out = File(dir, "sblorftz-update.apk")
             val conn = URL(update.apkUrl).openConnection() as HttpURLConnection
+            // GitHub risponde con un redirect verso il file vero.
+            conn.instanceFollowRedirects = true
             try {
                 conn.connectTimeout = 10_000
                 conn.readTimeout = 20_000
@@ -93,6 +117,8 @@ object Updater {
         connectTimeout = 8_000
         readTimeout = 8_000
         useCaches = false
+        setRequestProperty("Accept", "application/vnd.github+json")
+        setRequestProperty("User-Agent", "SblorftzTimer")
         if (responseCode != 200) {
             disconnect()
             error("HTTP $responseCode")

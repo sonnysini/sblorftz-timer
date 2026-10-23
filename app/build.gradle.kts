@@ -15,8 +15,25 @@ android {
         applicationId = "com.sblorftz.timer"
         minSdk = 23
         targetSdk = 35
-        versionCode = 23
-        versionName = "2.1.0"
+        versionCode = 24
+        versionName = "2.0.0"
+    }
+
+    signingConfigs {
+        create("upload") {
+            // Chiave fissa dai secret della CI (copia cifrata nel vault). In locale non c'è
+            // e la release si firma con la chiave debug: APK installabile, ma non aggiornabile
+            // sopra quelli della CI.
+            val storePath = providers.environmentVariable("KEYSTORE_PATH").orNull
+            if (storePath != null) {
+                storeFile = file(storePath)
+                // keytool di JDK 9+ scrive PKCS12 qualunque sia l'estensione.
+                storeType = "PKCS12"
+                storePassword = providers.environmentVariable("KEYSTORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("KEY_PASSWORD").orNull
+            }
+        }
     }
 
     buildTypes {
@@ -24,8 +41,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // App personale: firmata con la chiave debug della macchina che compila.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (System.getenv("KEYSTORE_PATH") != null) {
+                signingConfigs.getByName("upload")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 
