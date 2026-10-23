@@ -71,4 +71,5 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.tv.material)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.zxing.core)
 }

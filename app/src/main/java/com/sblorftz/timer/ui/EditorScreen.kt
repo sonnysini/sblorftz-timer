@@ -55,6 +55,7 @@ private enum class Field { Blinds, Minutes }
 private sealed interface EditorDialog {
     data class Delete(val index: Int) : EditorDialog
     data object Restore : EditorDialog
+    data object Phone : EditorDialog
 }
 
 @Composable
@@ -106,6 +107,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                         append(Level.blinds((last?.smallBlind ?: 50) * 2, last?.minutes ?: 15))
                     }, width = null, compact = true)
                     GoldButton("+ Cambio fiches", { append(Level.chipChange()) }, width = null, compact = true)
+                    GoldButton("Da telefono", { dialog = EditorDialog.Phone }, width = null, compact = true)
                     GoldButton("Predefinita", { dialog = EditorDialog.Restore }, width = null, compact = true)
                     GoldButton("Fatto", onDone, width = null, compact = true)
                 }
@@ -181,6 +183,11 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                     },
                 ),
             )
+            EditorDialog.Phone -> PhoneEditor(vm) {
+                dialog = null
+                editing = null
+                focusRow = 0
+            }
             null -> Unit
         }
     }
