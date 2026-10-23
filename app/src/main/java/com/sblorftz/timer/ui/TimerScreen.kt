@@ -285,7 +285,7 @@ private fun BlindsCenter(vm: TournamentViewModel) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(top = 150.dp),
+                .padding(top = 126.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -323,7 +323,7 @@ private fun ChipChangeCenter(vm: TournamentViewModel) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(top = 150.dp),
+                .padding(top = 126.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text("CAMBIO FICHES", style = label(30, Palette.GoldLight, 0.5f))
@@ -372,7 +372,7 @@ private fun Chip(value: String, color: Color) {
 @Composable
 private fun PauseBadge(vm: TournamentViewModel) {
     if (vm.running) return
-    Box(Modifier.fillMaxWidth().offset(y = 400.dp), contentAlignment = Alignment.TopCenter) {
+    Box(Modifier.fillMaxWidth().offset(y = 376.dp), contentAlignment = Alignment.TopCenter) {
         Box(
             Modifier
                 .drawBehind {
@@ -402,7 +402,7 @@ private fun HintOrHold(vm: TournamentViewModel) {
     Box(
         Modifier
             .fillMaxSize()
-            .padding(bottom = 186.dp),
+            .padding(bottom = 178.dp),
         contentAlignment = Alignment.BottomCenter,
     ) {
         val hold = vm.holdAction
