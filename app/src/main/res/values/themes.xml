@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.Sblorftz" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/table_dark</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+</resources>
