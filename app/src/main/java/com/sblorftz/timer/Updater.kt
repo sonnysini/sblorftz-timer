@@ -79,8 +79,12 @@ object Updater {
     private fun cleanNotes(raw: String) = raw.substringBefore("\n---").lines()
         .map { it.trim().removePrefix("- ").removePrefix("* ").replace("**", "").replace("`", "") }
         .filter { it.isNotEmpty() }
-        .joinToString(" · ")
-        .take(300)
+        .take(4)
+        .joinToString("\n") { "• " + shorten(it, 90) }
+
+    /** Taglia a fine parola, mai a metà. */
+    private fun shorten(s: String, max: Int) =
+        if (s.length <= max) s else s.take(max).substringBeforeLast(' ').trimEnd(',', ';', ':') + "…"
 
     /** Scarica l'APK e apre l'installer di sistema. [progress] riceve 0..1. */
     suspend fun downloadAndInstall(context: Context, update: Update, progress: (Float) -> Unit) {
