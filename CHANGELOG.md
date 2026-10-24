@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta7
+
+- Intro: accanto a TIMER compare la V e poi il 2 si schianta con lampo e scintille
+
 ## 2.0-beta6
 
 - Cambio livello: i bui girano come una slot, con scia dorata
