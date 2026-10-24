@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -43,6 +47,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
@@ -413,6 +418,129 @@ fun FanCards(time: () -> Float, modifier: Modifier = Modifier) {
                     Text(suit, style = label(34, color, 0f, FontWeight.Normal))
                 }
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- badge V2 (intro home)
+
+private const val V2_POP = 2300f
+private const val V2_SLAM = 2900f
+private const val V2_HIT = V2_SLAM + 240f
+private const val V_W = 46f
+private const val TWO_W = 40f
+private const val V2_H = 58f
+
+/** Dove sta il badge: lo legge il Canvas degli effetti per centrare lampo, anello e scintille sul 2. */
+class V2Anchor {
+    var coords: LayoutCoordinates? = null
+    val twoCenter get() = Offset(V_W + TWO_W / 2, V2_H / 2)
+}
+
+/** Tremolio di logo e carte quando il 2 si schianta. */
+fun v2Shake(t: Float): Offset {
+    if (t < V2_HIT || t > V2_HIT + 340f) return Offset.Zero
+    val k = (1f - phase(t, V2_HIT, V2_HIT + 340f)) * 18f
+    return Offset(k * sin(t / 9f), k * cos(t / 7f))
+}
+
+/** Badge oro accanto a TIMER: prima la V, poi il 2 arriva enorme e si schianta dentro. */
+@Composable
+fun V2Badge(time: () -> Float, anchor: V2Anchor, modifier: Modifier = Modifier) {
+    val shape = 10f
+    Box(modifier.onGloballyPositioned { anchor.coords = it }) {
+        Row(
+            Modifier
+                .graphicsLayer {
+                    val t = time()
+                    val pop = phase(t, V2_POP, V2_POP + 400f, backEasing(2.2f))
+                    val land = phase(t, V2_HIT, V2_HIT + 460f, backEasing(3f))
+                    val bump = if (t >= V2_HIT) 1f + 0.25f * sin(land * PI.toFloat()) * (1f - land) else 1f
+                    alpha = phase(t, V2_POP, V2_POP + 120f)
+                    scaleX = (0.4f + 0.6f * pop) * bump
+                    scaleY = scaleX
+                }
+                .drawBehind {
+                    val t = time()
+                    val w = if (t >= V2_HIT) size.width else V_W
+                    val r = androidx.compose.ui.geometry.CornerRadius(shape, shape)
+                    drawRoundRect(
+                        Brush.linearGradient(listOf(Color(0xFFF7DC7A), Palette.Gold, Color(0xFFA8841F)), end = Offset(w, size.height)),
+                        size = Size(w, size.height),
+                        cornerRadius = r,
+                    )
+                    val s = phase(t, V2_HIT + 660f, V2_HIT + 1160f, CubicBezierEasing(0.65f, 0f, 0.35f, 1f))
+                    if (s > 0f && s < 1f) {
+                        val x = -60f + (size.width + 60f) * s
+                        clipPath(Path().apply { addRoundRect(androidx.compose.ui.geometry.RoundRect(Rect(Offset.Zero, size), r)) }) {
+                            rotate(20f, pivot = Offset(x + 25f, size.height / 2)) {
+                                drawRect(
+                                    Brush.horizontalGradient(
+                                        0f to Color.Transparent, 0.5f to Color.White.copy(alpha = 0.85f), 1f to Color.Transparent,
+                                        startX = x, endX = x + 50f,
+                                    ),
+                                    topLeft = Offset(x, -20f),
+                                    size = Size(50f, size.height + 40f),
+                                )
+                            }
+                        }
+                    }
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val glyph = tight(Display, 50.sp, FontWeight.Black, Palette.FeltDark, lineHeight = 1f)
+            Box(Modifier.size(V_W.dp, V2_H.dp).padding(start = 6.dp), contentAlignment = Alignment.Center) { Text("V", style = glyph) }
+            Box(Modifier.size(TWO_W.dp, V2_H.dp).padding(end = 6.dp), contentAlignment = Alignment.Center) {
+                // In volo: 2 oro chiaro gigante e ruotato; all'impatto diventa scuro sull'oro.
+                Text(
+                    "2",
+                    style = glyph.copy(color = Palette.GoldLight),
+                    modifier = Modifier.graphicsLayer {
+                        val t = time()
+                        val v = phase(t, V2_SLAM, V2_HIT) { it * it }
+                        alpha = if (t >= V2_HIT) 0f else phase(t, V2_SLAM, V2_SLAM + 80f)
+                        scaleX = 9f - 8f * v
+                        scaleY = scaleX
+                        rotationZ = -50f * (1f - v)
+                    },
+                )
+                Text("2", style = glyph, modifier = Modifier.graphicsLayer { alpha = if (time() >= V2_HIT) 1f else 0f })
+            }
+        }
+    }
+}
+
+private val sparks = List(22) { i -> (i / 22f * 2f * PI.toFloat() + (i % 3) * 0.2f) to (120f + (i * 53) % 200) }
+
+/** Lampo, onda ad anello e scintille centrati sul 2 al momento dell'impatto. */
+@Composable
+fun V2Impact(time: () -> Float, anchor: V2Anchor) {
+    val self = remember { V2Anchor() }
+    Canvas(Modifier.fillMaxSize().onGloballyPositioned { self.coords = it }) {
+        val t = time()
+        if (t < V2_HIT || t > V2_HIT + 900f) return@Canvas
+        val a = anchor.coords ?: return@Canvas
+        val me = self.coords ?: return@Canvas
+        val c = me.localPositionOf(a, anchor.twoCenter)
+        val hit = phase(t, V2_HIT, V2_HIT + 660f)
+        drawRect(
+            Brush.radialGradient(
+                0f to Color(0xFFFFE278).copy(alpha = 0.9f),
+                0.3f to Palette.Gold.copy(alpha = 0.25f),
+                0.65f to Color.Transparent,
+                center = c,
+                radius = 1300f,
+            ),
+            alpha = (1f - hit) * 0.9f,
+        )
+        val r = 20f + 900f * EaseOutCubic.transform(hit)
+        drawCircle(Color(0xFFF7DC7A), r, c, alpha = 1f - hit, style = Stroke(8f - 6f * hit))
+        val k = phase(t, V2_HIT, V2_HIT + 860f, EaseOutCubic)
+        val fade = 1f - phase(t, V2_HIT + 460f, V2_HIT + 860f)
+        sparks.forEach { (ang, dist) ->
+            val p = Offset(c.x + cos(ang) * dist * k, c.y + sin(ang) * dist * k + 120f * k * k)
+            drawCircle(Palette.Gold.copy(alpha = 0.5f * fade), 11f, p)
+            drawCircle(Color(0xFFF7DC7A), 5f, p, alpha = fade)
         }
     }
 }

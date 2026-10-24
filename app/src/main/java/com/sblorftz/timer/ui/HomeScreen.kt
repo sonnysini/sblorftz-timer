@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,16 +60,18 @@ fun HomeScreen(
         }
     }
 
-    // Intro (una volta per avvio): carte a ventaglio, lettere che cadono, bottoni che salgono.
+    // Intro (una volta per avvio): carte a ventaglio, lettere che cadono, badge V2 che si schianta, bottoni che salgono.
     val intro = remember { !HomeIntro.played }
-    val introTime = if (intro) rememberFrameTime(untilMs = 3_000) else remember { mutableStateOf(10_000L) }
+    val introTime = if (intro) rememberFrameTime(untilMs = 4_700) else remember { mutableStateOf(10_000L) }
     LaunchedEffect(Unit) { HomeIntro.played = true }
     val t = { introTime.value.toFloat() }
+    val v2 = remember { V2Anchor() }
+    val shake = Modifier.graphicsLayer { v2Shake(t()).let { translationX = it.x; translationY = it.y } }
 
     TableBackground {
-        FanCards(t, Modifier.fillMaxWidth().padding(top = 110.dp))
+        FanCards(t, shake.fillMaxWidth().padding(top = 110.dp))
         Column(
-            Modifier
+            shake
                 .fillMaxSize()
                 .padding(top = 170.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -88,17 +91,21 @@ fun HomeScreen(
                 }
             }
             Spacer(Modifier.height(18.dp))
-            Text(
-                "TIMER",
-                style = label(30, Palette.Cream.copy(alpha = 0.45f), 0.45f),
-                modifier = Modifier.graphicsLayer {
-                    compositingStrategy = CompositingStrategy.Offscreen
-                    val sub = phase(t(), 2000f, 2400f, EaseOutCubic)
-                    alpha = sub
-                    scaleX = 1.5f - 0.5f * sub
-                },
-            )
-            Spacer(Modifier.height(96.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "TIMER",
+                    style = label(30, Palette.Cream.copy(alpha = 0.45f), 0.45f),
+                    modifier = Modifier.graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                        val sub = phase(t(), 2000f, 2400f, EaseOutCubic)
+                        alpha = sub
+                        scaleX = 1.5f - 0.5f * sub
+                    },
+                )
+                Spacer(Modifier.width(8.dp))
+                V2Badge(t, v2)
+            }
+            Spacer(Modifier.height(82.dp))
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(22.dp),
@@ -106,7 +113,7 @@ fun HomeScreen(
             ) {
                 fun rise(i: Int) = Modifier.graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
-                    val a = phase(t(), 2200f + i * 120, 2700f + i * 120, EaseOutCubic)
+                    val a = phase(t(), 3300f + i * 120, 3800f + i * 120, EaseOutCubic)
                     alpha = a
                     translationY = 50f * (1f - a)
                 }
@@ -122,6 +129,7 @@ fun HomeScreen(
                 GoldButton("Struttura", onStructure, rise(2))
             }
         }
+        V2Impact(t, v2)
         Box(Modifier.fillMaxSize().padding(bottom = 48.dp), contentAlignment = Alignment.BottomCenter) {
             Text("v${Updater.displayVersion(BuildConfig.VERSION_NAME)}", style = label(20, Palette.Muted2.copy(alpha = 0.6f), 0.2f, FontWeight.Medium))
         }
