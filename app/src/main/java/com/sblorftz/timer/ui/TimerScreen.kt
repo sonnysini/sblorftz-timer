@@ -54,6 +54,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
@@ -323,6 +324,7 @@ private fun Clock(vm: TournamentViewModel, fx: Fx) {
                 }
             }
             .graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
                 // dopo un cambio livello l'orologio nuovo entra con un piccolo rimbalzo; poi il battito
                 val c = fx.change
                 val pop = if (c < 1f) 1.1f - 0.1f * phase(c, 0f, 0.375f, backEasing()) else 1f
@@ -448,6 +450,7 @@ private fun ChipMerge() {
             Modifier
                 .size(240.dp)
                 .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                     alpha = flashIn * (1f - flashOut)
                     scaleX = 0.3f + 0.7f * flashIn + 0.5f * flashOut
                     scaleY = scaleX
@@ -469,6 +472,7 @@ private fun ChipMerge() {
                 "100",
                 Palette.ChipBlack,
                 Modifier.graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                     alpha = phase(p, 0f, 0.06f) * (1f - phase(p, 0.56f, 0.58f))
                     translationX = (i - 2) * 170f * (1f - slide)
                     translationY = -i * 7f * slide * (1f - squeeze)
@@ -481,6 +485,7 @@ private fun ChipMerge() {
             "500",
             Palette.ChipPurple,
             Modifier.graphicsLayer {
+                compositingStrategy = CompositingStrategy.Offscreen
                 alpha = phase(p, 0.56f, 0.68f) * (1f - phase(p, 0.92f, 1f))
                 scaleX = 0.2f + 1.05f * phase(p, 0.56f, 0.68f, PopEasing)
                 scaleY = scaleX
@@ -539,6 +544,7 @@ private fun PauseBadge(vm: TournamentViewModel) {
         Box(
             Modifier
                 .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                     translationY = -750f * (1f - drop.value)
                     val s = 1f + 0.12f * out.value
                     scaleX = s

@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -78,6 +79,7 @@ fun HomeScreen(
                         ch.toString(),
                         style = tight(Display, 190.sp, FontWeight.Black, Palette.Gold, letterSpacing = 30.sp),
                         modifier = Modifier.graphicsLayer {
+                            compositingStrategy = CompositingStrategy.Offscreen
                             val drop = phase(t(), 1300f + i * 70, 1750f + i * 70, backEasing())
                             alpha = phase(t(), 1300f + i * 70, 1500f + i * 70)
                             translationY = -90f * (1f - drop)
@@ -90,6 +92,7 @@ fun HomeScreen(
                 "TIMER",
                 style = label(30, Palette.Cream.copy(alpha = 0.45f), 0.45f),
                 modifier = Modifier.graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                     val sub = phase(t(), 2000f, 2400f, EaseOutCubic)
                     alpha = sub
                     scaleX = 1.5f - 0.5f * sub
@@ -102,6 +105,7 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 fun rise(i: Int) = Modifier.graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                     val a = phase(t(), 2200f + i * 120, 2700f + i * 120, EaseOutCubic)
                     alpha = a
                     translationY = 50f * (1f - a)

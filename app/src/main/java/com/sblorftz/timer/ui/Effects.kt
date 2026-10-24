@@ -37,6 +37,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
@@ -164,7 +165,7 @@ fun SlotNumber(old: String?, fake: List<String>, new: String, p: () -> Float, st
                     .wrapContentSize(align = if (alignEnd) Alignment.TopEnd else Alignment.TopStart, unbounded = true),
             ) {
                 Column(
-                    Modifier.graphicsLayer { translationY = -SlotEasing.transform(p()) * steps * rowH },
+                    Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen; translationY = -SlotEasing.transform(p()) * steps * rowH },
                     horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
                 ) {
                     values.forEach { v ->
@@ -234,22 +235,33 @@ fun FinishOverlay(finishedAt: Long, subtitle: String) {
     val start = remember(finishedAt) { if (finishedAt == 0L) 0L else SystemClock.elapsedRealtime() - finishedAt }
     fun now() = (time.value + start).toFloat()
     Box(Modifier.fillMaxSize()) {
+        // sfondo e piatto scuro: statici, disegnati una volta
         Canvas(Modifier.fillMaxSize()) {
-            val t = now()
             drawRect(
                 Brush.radialGradient(
                     0f to Palette.Amber, 0.55f to Palette.AmberDark, 1f to Palette.AmberNight,
                     center = Offset(size.width / 2, size.height * 0.45f), radius = size.width * 0.62f,
                 ),
             )
-            for (c in rainChips) {
-                val on = phase(t, c.delay, c.delay + 300f)
-                if (on <= 0f) continue
-                val y = -130f + ((c.offset + t * c.speed / 1000f) % 1300f)
-                val x = c.x + 30f * sin(t / 700f + c.offset)
-                chip(Offset(x + c.size / 2, y + c.size / 2), c.size / 2, c.color, c.spin * t / 1000f, 0.55f + 0.45f * c.size / 110f)
+        }
+        // ogni fiche è un layer offscreen: il tratteggio si rasterizza una volta, poi si sposta e ruota
+        for (c in rainChips) {
+            Canvas(
+                Modifier
+                    .size((c.size + 8f).dp)
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                        val t = now()
+                        alpha = if (t < c.delay) 0f else 0.55f + 0.45f * c.size / 110f
+                        translationX = c.x + 30f * sin(t / 700f + c.offset)
+                        translationY = -130f + ((c.offset + t * c.speed / 1000f) % 1300f)
+                        rotationZ = c.spin * t / 1000f
+                    },
+            ) {
+                chip(Offset(c.size / 2 + 4f, c.size / 2), c.size / 2, c.color, 0f, 1f)
             }
-            // piatto scuro dietro il trofeo, poi alone dorato che respira
+        }
+        Canvas(Modifier.fillMaxSize()) {
             drawOval(
                 Brush.radialGradient(
                     0.3f to Color(0xEB0A0702), 0.7f to Color.Transparent,
@@ -257,11 +269,19 @@ fun FinishOverlay(finishedAt: Long, subtitle: String) {
                 ),
                 topLeft = Offset(460f, 120f), size = Size(1000f, 640f),
             )
-            val glow = phase(t, 500f, 1000f) * (0.75f + 0.25f * sin(t / 400f))
-            drawCircle(
-                Brush.radialGradient(0f to Palette.GoldLight.copy(alpha = 0.35f), 0.65f to Color.Transparent, center = Offset(960f, 420f), radius = 300f),
-                300f, Offset(960f, 420f), alpha = glow,
-            )
+        }
+        // alone dorato che respira dietro il trofeo
+        Canvas(
+            Modifier
+                .padding(start = 660.dp, top = 120.dp)
+                .size(600.dp)
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                    val t = now()
+                    alpha = phase(t, 500f, 1000f) * (0.75f + 0.25f * sin(t / 400f))
+                },
+        ) {
+            drawCircle(Brush.radialGradient(0f to Palette.GoldLight.copy(alpha = 0.35f), 0.65f to Color.Transparent))
         }
         Column(
             Modifier.fillMaxWidth().padding(top = 170.dp),
@@ -271,6 +291,7 @@ fun FinishOverlay(finishedAt: Long, subtitle: String) {
                 Modifier
                     .size(300.dp, 315.dp)
                     .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
                         val t = now()
                         val pop = phase(t, 200f, 1000f, backEasing(2f))
                         val s = 0.2f + 0.8f * pop
@@ -284,6 +305,7 @@ fun FinishOverlay(finishedAt: Long, subtitle: String) {
                 "FINE",
                 style = tight(Display, 150.sp, FontWeight.Black, Palette.Gold, letterSpacing = 27.sp),
                 modifier = Modifier.graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                     val a = phase(now(), 800f, 1300f, EaseOutCubic)
                     alpha = a
                     translationY = 40f * (1f - a)
@@ -295,6 +317,7 @@ fun FinishOverlay(finishedAt: Long, subtitle: String) {
                 subtitle,
                 style = label(30, Color(0xFFCFC6B0), 0.12f, FontWeight.Medium),
                 modifier = Modifier.graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
                     val b = phase(now(), 1200f, 1700f, EaseOutCubic)
                     alpha = b
                     translationY = 30f * (1f - b)
@@ -364,6 +387,7 @@ fun FanCards(time: () -> Float, modifier: Modifier = Modifier) {
                 Modifier
                     .size(200.dp, 290.dp)
                     .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
                         val t = time()
                         val rise = phase(t, 150f + i * 60, 650f + i * 60, EaseOutCubic)
                         val open = phase(t, 800f + i * 70, 1500f + i * 70, backEasing(1.3f))
