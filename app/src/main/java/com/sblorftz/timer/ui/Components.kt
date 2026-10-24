@@ -3,6 +3,7 @@ package com.sblorftz.timer.ui
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,7 +22,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -154,6 +157,7 @@ fun GoldButton(
 data class DialogAction(val text: String, val danger: Boolean = false, val onClick: () -> Unit)
 
 /** Finestra di conferma sopra lo schermo: il primo bottone prende il focus. */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Overlay(
     title: String,
@@ -168,6 +172,9 @@ fun Overlay(
         Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.72f))
+            // Le frecce restano dentro il popup: senza, il focus finiva sui bottoni nascosti sotto.
+            .focusProperties { exit = { FocusRequester.Cancel } }
+            .focusGroup()
             // Senza bottoni (es. download in corso) il focus lo tiene l'overlay, non lo schermo sotto.
             .then(if (actions.isEmpty()) Modifier.focusRequester(first).focusable() else Modifier),
         contentAlignment = Alignment.Center,
