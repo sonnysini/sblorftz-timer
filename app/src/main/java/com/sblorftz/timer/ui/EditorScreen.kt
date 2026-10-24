@@ -90,30 +90,33 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     TableBackground {
         Box(Modifier.fillMaxSize().padding(top = 56.dp), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.width(TABLE_WIDTH.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                 Column(Modifier.weight(1f)) {
                     Brand()
                     Spacer(Modifier.height(28.dp))
                     Text("Struttura", style = tight(Display, 96.sp, FontWeight.Black, lineHeight = 1f), maxLines = 1)
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "${structure.blindLevelCount()} livelli · ${formatDuration(structure.sumOf { it.durationMs })} in tutto",
-                        style = label(24, Palette.Muted, 0.02f, FontWeight.Medium),
-                    )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    GoldButton("+ Livello", {
-                        val last = structure.lastOrNull { !it.isChipChange }
-                        append(Level.blinds((last?.smallBlind ?: 50) * 2, last?.minutes ?: 15))
-                    }, width = null, compact = true)
-                    GoldButton("+ Cambio fiches", { append(Level.chipChange()) }, width = null, compact = true)
-                    GoldButton("Da telefono", { dialog = EditorDialog.Phone }, width = null, compact = true)
-                    GoldButton("Predefinita", { dialog = EditorDialog.Restore }, width = null, compact = true)
-                    GoldButton("Fatto", onDone, width = null, compact = true)
-                }
+                Text(
+                    "${structure.blindLevelCount()} livelli · ${formatDuration(structure.sumOf { it.durationMs })} in tutto",
+                    style = label(24, Palette.Muted, 0.02f, FontWeight.Medium),
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+            Spacer(Modifier.height(28.dp))
+            // Bottoni su una riga a parte: accanto al titolo non ci stanno tutti.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                GoldButton("+ Livello", {
+                    val last = structure.lastOrNull { !it.isChipChange }
+                    append(Level.blinds((last?.smallBlind ?: 50) * 2, last?.minutes ?: 15))
+                }, width = null, compact = true)
+                GoldButton("+ Cambio fiches", { append(Level.chipChange()) }, width = null, compact = true)
+                GoldButton("Da telefono", { dialog = EditorDialog.Phone }, width = null, compact = true)
+                GoldButton("Predefinita", { dialog = EditorDialog.Restore }, width = null, compact = true)
+                Spacer(Modifier.weight(1f))
+                GoldButton("Fatto", onDone, width = null, compact = true)
             }
 
-            Spacer(Modifier.height(36.dp))
+            Spacer(Modifier.height(32.dp))
             Row(Modifier.padding(horizontal = 24.dp)) {
                 Text("LIVELLO", style = label(20), modifier = Modifier.width(260.dp))
                 Text("PICCOLO / GRANDE BUIO", style = label(20), modifier = Modifier.width(680.dp))
