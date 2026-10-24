@@ -18,7 +18,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -61,9 +60,9 @@ fun HomeScreen(
 
     // Intro (una volta per avvio): carte a ventaglio, lettere che cadono, bottoni che salgono.
     val intro = remember { !HomeIntro.played }
-    val introTime by if (intro) rememberFrameTime(untilMs = 3_000) else remember { mutableStateOf(10_000L) }
+    val introTime = if (intro) rememberFrameTime(untilMs = 3_000) else remember { mutableStateOf(10_000L) }
     LaunchedEffect(Unit) { HomeIntro.played = true }
-    val t = introTime.toFloat()
+    val t = { introTime.value.toFloat() }
 
     TableBackground {
         FanCards(t, Modifier.fillMaxWidth().padding(top = 110.dp))
@@ -75,23 +74,26 @@ fun HomeScreen(
         ) {
             Row {
                 "SBLORFTZ".forEachIndexed { i, ch ->
-                    val drop = phase(t, 1300f + i * 70, 1750f + i * 70, backEasing())
                     Text(
                         ch.toString(),
                         style = tight(Display, 190.sp, FontWeight.Black, Palette.Gold, letterSpacing = 30.sp),
                         modifier = Modifier.graphicsLayer {
-                            alpha = phase(t, 1300f + i * 70, 1500f + i * 70)
+                            val drop = phase(t(), 1300f + i * 70, 1750f + i * 70, backEasing())
+                            alpha = phase(t(), 1300f + i * 70, 1500f + i * 70)
                             translationY = -90f * (1f - drop)
                         },
                     )
                 }
             }
             Spacer(Modifier.height(18.dp))
-            val sub = phase(t, 2000f, 2400f, EaseOutCubic)
             Text(
                 "TIMER",
-                style = label(30, Palette.Cream.copy(alpha = 0.45f), 0.9f - 0.45f * sub),
-                modifier = Modifier.alpha(sub),
+                style = label(30, Palette.Cream.copy(alpha = 0.45f), 0.45f),
+                modifier = Modifier.graphicsLayer {
+                    val sub = phase(t(), 2000f, 2400f, EaseOutCubic)
+                    alpha = sub
+                    scaleX = 1.5f - 0.5f * sub
+                },
             )
             Spacer(Modifier.height(96.dp))
 
@@ -100,7 +102,7 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 fun rise(i: Int) = Modifier.graphicsLayer {
-                    val a = phase(t, 2200f + i * 120, 2700f + i * 120, EaseOutCubic)
+                    val a = phase(t(), 2200f + i * 120, 2700f + i * 120, EaseOutCubic)
                     alpha = a
                     translationY = 50f * (1f - a)
                 }

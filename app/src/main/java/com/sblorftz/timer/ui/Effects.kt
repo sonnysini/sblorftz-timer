@@ -83,13 +83,13 @@ val BounceEasing = Easing { t ->
 
 /** Avanzamento 0..1 di un'animazione partita all'istante [startedAt] (elapsedRealtime); 1 se già finita o mai partita. */
 @Composable
-fun rememberSince(startedAt: Long, durationMs: Int): Float {
+fun rememberSince(startedAt: Long, durationMs: Int): State<Float> {
     fun now() = if (startedAt == 0L) 1f else ((SystemClock.elapsedRealtime() - startedAt) / durationMs.toFloat()).coerceIn(0f, 1f)
-    var p by remember(startedAt) { mutableFloatStateOf(now()) }
+    val p = remember(startedAt) { mutableFloatStateOf(now()) }
     LaunchedEffect(startedAt) {
-        while (p < 1f) {
+        while (p.floatValue < 1f) {
             withFrameMillis { }
-            p = now()
+            p.floatValue = now()
         }
     }
     return p
@@ -106,9 +106,10 @@ fun rememberFrameTime(untilMs: Long = Long.MAX_VALUE): State<Long> = produceStat
 
 /** Flash bianco + scia dorata obliqua che attraversa lo schermo (p = 0..1 su 1,2 s). */
 @Composable
-fun LevelChangeFlash(p: Float) {
-    if (p >= 1f) return
+fun LevelChangeFlash(progress: () -> Float) {
     Canvas(Modifier.fillMaxSize()) {
+        val p = progress()
+        if (p >= 1f) return@Canvas
         val flash = 0.45f * phase(p, 0f, 0.05f) * (1f - phase(p, 0.05f, 0.5f, EaseOutCubic))
         if (flash > 0f) drawRect(Color.White.copy(alpha = flash))
         val sweepAlpha = phase(p, 0f, 0.12f) * (1f - phase(p, 0.62f, 0.75f))
@@ -144,9 +145,9 @@ private val RowClip = GenericShape { size, _ -> addRect(Rect(-2000f, 0f, size.wi
  * [p] = 0..1; con [old] null o p = 1 resta fermo su [new]. La larghezza è sempre quella di [new].
  */
 @Composable
-fun SlotNumber(old: String?, fake: List<String>, new: String, p: Float, style: TextStyle, alignEnd: Boolean) {
+fun SlotNumber(old: String?, fake: List<String>, new: String, p: () -> Float, style: TextStyle, alignEnd: Boolean) {
     val rowH = 150
-    val rolling = old != null && p < 1f
+    val rolling = old != null
     Box(
         Modifier
             .height(rowH.dp)
@@ -156,14 +157,14 @@ fun SlotNumber(old: String?, fake: List<String>, new: String, p: Float, style: T
         Text(new, style = style, modifier = Modifier.alpha(if (rolling) 0f else 1f))
         if (rolling) {
             val values = listOf(old!!) + fake + new
-            val shift = SlotEasing.transform(p) * (values.size - 1) * rowH
+            val steps = values.size - 1
             Box(
                 Modifier
                     .matchParentSize()
                     .wrapContentSize(align = if (alignEnd) Alignment.TopEnd else Alignment.TopStart, unbounded = true),
             ) {
                 Column(
-                    Modifier.graphicsLayer { translationY = -shift },
+                    Modifier.graphicsLayer { translationY = -SlotEasing.transform(p()) * steps * rowH },
                     horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start,
                 ) {
                     values.forEach { v ->
@@ -179,9 +180,8 @@ fun SlotNumber(old: String?, fake: List<String>, new: String, p: Float, style: T
 
 /** Bordo dello schermo che si arrossa a tempo col battito. */
 @Composable
-fun AlertVignette(alpha: Float) {
-    if (alpha <= 0f) return
-    Canvas(Modifier.fillMaxSize()) {
+fun AlertVignette(alpha: () -> Float) {
+    Canvas(Modifier.fillMaxSize().graphicsLayer { this.alpha = alpha() }) {
         drawRect(
             Brush.radialGradient(
                 0.45f to Color.Transparent,
@@ -189,7 +189,6 @@ fun AlertVignette(alpha: Float) {
                 center = Offset(size.width / 2, size.height * 0.45f),
                 radius = size.width * 0.6f,
             ),
-            alpha = alpha,
         )
     }
 }
@@ -230,11 +229,13 @@ private fun DrawScope.chip(center: Offset, radius: Float, color: Color, angle: F
 /** Schermata di fine torneo: pioggia di fiche, trofeo che rimbalza, FINE e durata. */
 @Composable
 fun FinishOverlay(finishedAt: Long, subtitle: String) {
-    val time by rememberFrameTime()
+    // il tempo si legge solo in disegno e graphicsLayer: niente ricomposizione a ogni frame
+    val time = rememberFrameTime()
     val start = remember(finishedAt) { if (finishedAt == 0L) 0L else SystemClock.elapsedRealtime() - finishedAt }
-    val t = (time + start).toFloat()
+    fun now() = (time.value + start).toFloat()
     Box(Modifier.fillMaxSize()) {
         Canvas(Modifier.fillMaxSize()) {
+            val t = now()
             drawRect(
                 Brush.radialGradient(
                     0f to Palette.Amber, 0.55f to Palette.AmberDark, 1f to Palette.AmberNight,
@@ -266,30 +267,38 @@ fun FinishOverlay(finishedAt: Long, subtitle: String) {
             Modifier.fillMaxWidth().padding(top = 170.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val pop = phase(t, 200f, 1000f, backEasing(2f))
             Trophy(
                 Modifier
                     .size(300.dp, 315.dp)
                     .graphicsLayer {
+                        val t = now()
+                        val pop = phase(t, 200f, 1000f, backEasing(2f))
                         val s = 0.2f + 0.8f * pop
                         scaleX = s; scaleY = s
                         rotationZ = -12f * (1f - pop)
                         alpha = phase(t, 200f, 450f)
                     },
             )
-            val a = phase(t, 800f, 1300f, EaseOutCubic)
-            val b = phase(t, 1200f, 1700f, EaseOutCubic)
             Spacer(Modifier.height(10.dp))
             Text(
                 "FINE",
-                style = tight(Display, 150.sp, FontWeight.Black, Palette.Gold, letterSpacing = (150 * (0.6f - 0.42f * a)).sp),
-                modifier = Modifier.graphicsLayer { alpha = a; translationY = 40f * (1f - a) },
+                style = tight(Display, 150.sp, FontWeight.Black, Palette.Gold, letterSpacing = 27.sp),
+                modifier = Modifier.graphicsLayer {
+                    val a = phase(now(), 800f, 1300f, EaseOutCubic)
+                    alpha = a
+                    translationY = 40f * (1f - a)
+                    scaleX = 1.6f - 0.6f * a
+                },
             )
             Spacer(Modifier.height(14.dp))
             Text(
                 subtitle,
                 style = label(30, Color(0xFFCFC6B0), 0.12f, FontWeight.Medium),
-                modifier = Modifier.graphicsLayer { alpha = b; translationY = 30f * (1f - b) },
+                modifier = Modifier.graphicsLayer {
+                    val b = phase(now(), 1200f, 1700f, EaseOutCubic)
+                    alpha = b
+                    translationY = 30f * (1f - b)
+                },
             )
         }
     }
@@ -347,16 +356,17 @@ private val CardShape = RoundedCornerShape(16.dp)
 
 /** Quattro carte che salgono impilate e si aprono a ventaglio dietro al logo (t in ms). */
 @Composable
-fun FanCards(t: Float, modifier: Modifier = Modifier) {
+fun FanCards(time: () -> Float, modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
         suits.forEachIndexed { i, (suit, color) ->
-            val rise = phase(t, 150f + i * 60, 650f + i * 60, EaseOutCubic)
-            val open = phase(t, 800f + i * 70, 1500f + i * 70, backEasing(1.3f))
             val (r, x, y) = fan[i]
             Box(
                 Modifier
                     .size(200.dp, 290.dp)
                     .graphicsLayer {
+                        val t = time()
+                        val rise = phase(t, 150f + i * 60, 650f + i * 60, EaseOutCubic)
+                        val open = phase(t, 800f + i * 70, 1500f + i * 70, backEasing(1.3f))
                         transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1.2f)
                         translationX = x * open
                         translationY = y * open + 260f * (1f - rise)
