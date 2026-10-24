@@ -55,7 +55,7 @@ import com.sblorftz.timer.formatChips
 
 private const val TABLE_WIDTH = 1480
 private const val BLINDS_WIDTH = 720
-private const val MINUTES_WIDTH = 420
+private const val MINUTES_WIDTH = 412
 
 private enum class Field { Blinds, Minutes }
 
@@ -157,7 +157,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                         },
                     )
                 }
-                item { AddRow(::append) }
+                item(key = "add") { AddRow(::append) }
             }
 
             Spacer(Modifier.height(20.dp))
