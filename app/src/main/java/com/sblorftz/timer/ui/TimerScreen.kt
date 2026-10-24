@@ -344,7 +344,8 @@ private fun Clock(vm: TournamentViewModel, fx: Fx) {
 @Composable
 private fun ProgressBar(vm: TournamentViewModel) {
     val total = vm.level.durationMs.coerceAtLeast(1)
-    val done = 1f - vm.remainingMs / total.toFloat()
+    // Parte piena e si svuota da destra verso sinistra: quello che resta è il tempo che manca.
+    val left = vm.remainingMs / total.toFloat()
     val lastMinute = vm.remainingMs <= 60_000
     Box(
         Modifier
@@ -355,7 +356,7 @@ private fun ProgressBar(vm: TournamentViewModel) {
             .drawBehind {
                 drawRoundRect(
                     brush = if (lastMinute) Brush.horizontalGradient(listOf(Palette.GoldDark, Palette.Red)) else Palette.BarBrush,
-                    size = size.copy(width = size.width * done.coerceIn(0f, 1f)),
+                    size = size.copy(width = size.width * left.coerceIn(0f, 1f)),
                     cornerRadius = CornerRadius(size.height / 2),
                 )
             },

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0-beta8
+
+- Intro: la fiche oro cade e diventa la O di SBLORFTZ, sotto il cronometro con TIMER e V2
+- Barra del tempo che si svuota da destra a sinistra
+- Ultimi 10 secondi: battito del cuore al posto del tic
+- Indietro dalla home chiede se uscire e chiude l'app
+
 ## 2.0-beta7
 
 - Intro: accanto a TIMER compare la V e poi il 2 si schianta con lampo e scintille

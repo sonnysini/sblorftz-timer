@@ -1,6 +1,7 @@
 package com.sblorftz.timer
 
 import android.os.Bundle
+import android.os.Process
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -59,6 +60,10 @@ class MainActivity : ComponentActivity() {
                             editorReturn = Screen.Home
                             screen = Screen.Editor
                         },
+                        onExit = {
+                            exitRequested = true
+                            finishAndRemoveTask()
+                        },
                     )
                     Screen.Timer -> TimerScreen(
                         vm = vm,
@@ -72,6 +77,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private var exitRequested = false
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // "Esci" dalla home: chiude anche il processo, così alla riapertura riparte l'intro
+        // (HomeIntro.played e il controllo aggiornamenti vivono nel processo).
+        if (exitRequested && isFinishing) Process.killProcess(Process.myPid())
     }
 
     override fun onStop() {
