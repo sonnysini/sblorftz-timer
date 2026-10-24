@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta2
+
+- Struttura più pulita, senza bottoni: QR sempre in alto a destra per modificarla dallo smartphone
+- "+ Aggiungi livello" in fondo alla lista; con ☰ su un livello si inserisce un livello o un cambio fiches sotto, si elimina o si ripristina la predefinita
+- La struttura si salva da sola: Indietro per uscire
+
 ## 2.0-beta1
 
 - App riscritta da zero in Kotlin, nuova grafica pensata per la TV

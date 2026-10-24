@@ -96,7 +96,7 @@ async function save(){
     if(!r.ok)throw 0;dirty=false;msg('Salvata sulla TV ✓','ok')}
   catch(_){msg('Errore: la TV non risponde. Sei sulla stessa wifi?','err')}
   finally{$('#save').disabled=false}}
-function expired(){document.body.innerHTML='<div class="box"><h1>QR scaduto</h1><p>Riapri “Da telefono” sulla TV e inquadra il nuovo QR.</p></div>'}
+function expired(){document.body.innerHTML='<div class="box"><h1>QR scaduto</h1><p>Riapri Struttura sulla TV e inquadra il nuovo QR.</p></div>'}
 async function load(){
   try{const r=await fetch('/api/structure?t='+T,{cache:'no-store'});if(r.status===403)return expired();
     const d=await r.json();levels=d.levels;current=d.current;dirty=false;render();msg('')}
@@ -117,5 +117,5 @@ load();
 
     val expired = """<!doctype html><html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Sblorftz Timer</title><style>$STYLE</style></head>
-<body><div class="box"><h1>QR scaduto</h1><p>Riapri “Da telefono” sulla TV e inquadra il nuovo QR.</p></div></body></html>"""
+<body><div class="box"><h1>QR scaduto</h1><p>Riapri Struttura sulla TV e inquadra il nuovo QR.</p></div></body></html>"""
 }

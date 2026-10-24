@@ -160,6 +160,7 @@ fun Overlay(
     subtitle: String? = null,
     actions: List<DialogAction>,
     vertical: Boolean = false,
+    buttonWidth: Int = 520,
 ) {
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
@@ -191,7 +192,7 @@ fun Overlay(
                             a.text, a.onClick,
                             modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
                             danger = a.danger,
-                            width = 520,
+                            width = buttonWidth,
                         )
                     }
                 }
