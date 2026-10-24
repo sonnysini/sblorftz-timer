@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0-beta6
+
+- Cambio livello: i bui girano come una slot, con scia dorata
+- Ultimi 10 secondi: orologio rosso che pulsa a ogni secondo
+- Pausa animata, fine torneo con trofeo e pioggia di fiche
+- Intro con le carte a ventaglio nella schermata iniziale
+
 ## 2.0-beta5
 
 - Cambio fiches animato: 5 fiche nere da 100 diventano una viola da 500

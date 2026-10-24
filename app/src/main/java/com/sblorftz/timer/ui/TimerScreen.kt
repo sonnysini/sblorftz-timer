@@ -3,6 +3,9 @@ package com.sblorftz.timer.ui
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -138,9 +141,22 @@ fun TimerScreen(
                     }
                 },
         ) {
+            val alert = rememberAlert(vm)
+            val dim = rememberPauseDim(vm)
+            val change = rememberSince(vm.levelChangedAt, 1_200)
+            AlertVignette(alert.red * (0.35f + 0.65f * alert.beat))
             TopBar(vm)
-            if (level.isChipChange) ChipChangeCenter(vm) else BlindsCenter(vm)
+            if (level.isChipChange) ChipChangeCenter(vm, alert, dim, change) else BlindsCenter(vm, alert, dim, change)
             BottomBar(vm)
+            if (dim > 0f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f * dim)))
+            PauseBadge(vm)
+            HintOrHold(vm)
+            LevelChangeFlash(change)
+            if (vm.finished) {
+                FinishOverlay(vm.finishedAt, "${formatDuration(vm.playedMs)} di gioco · ${vm.structure.blindLevelCount()} livelli")
+                TopBar(vm)
+                HintOrHold(vm)
+            }
         }
 
         when (dialog) {
@@ -237,17 +253,42 @@ private fun MetaText(before: String, bold: String, after: String) {
     )
 }
 
+/** Ultimi 10 secondi: [red] 0..1 (entra a 00:10), [beat] 1→0 a ogni secondo. */
+private class AlertFx(val red: Float, val beat: Float)
+
 @Composable
-private fun Clock(vm: TournamentViewModel) {
+private fun rememberAlert(vm: TournamentViewModel): AlertFx {
     val seconds = ((vm.remainingMs + 999) / 1000).toInt()
     val alert = vm.running && seconds <= 10
-    val pulse = rememberInfiniteTransition(label = "pulse")
-    val beat by pulse.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.06f,
-        animationSpec = infiniteRepeatable(tween(500), RepeatMode.Reverse),
-        label = "beat",
+    val red by animateFloatAsState(if (alert) 1f else 0f, tween(if (alert) 700 else 300), label = "red")
+    val beat = remember { Animatable(0f) }
+    LaunchedEffect(seconds, alert) {
+        if (alert) {
+            beat.snapTo(1f)
+            beat.animateTo(0f, tween(400, easing = EaseOutCubic))
+        } else {
+            beat.snapTo(0f)
+        }
+    }
+    return AlertFx(red, beat.value)
+}
+
+/** 0 = in gioco, 1 = in pausa (tavolo scurito). */
+@Composable
+private fun rememberPauseDim(vm: TournamentViewModel): Float {
+    val dim by animateFloatAsState(
+        if (!vm.running && !vm.finished) 1f else 0f,
+        tween(600, easing = EaseOutCubic),
+        label = "dim",
     )
+    return dim
+}
+
+@Composable
+private fun Clock(vm: TournamentViewModel, alert: AlertFx, dim: Float, change: Float) {
+    val seconds = ((vm.remainingMs + 999) / 1000).toInt()
+    // dopo un cambio livello l'orologio nuovo entra con un piccolo rimbalzo
+    val pop = if (change < 1f) 1.1f - 0.1f * phase(change, 0f, 0.375f, backEasing()) else 1f
     // Il box del font è più alto delle cifre: lo si stringe all'altezza vera
     // dei numeri, così il resto della colonna resta dove sta nel mockup.
     Box(
@@ -258,11 +299,16 @@ private fun Clock(vm: TournamentViewModel) {
         Text(
             "%02d:%02d".format(seconds / 60, seconds % 60),
             style = tight(Display, 420.sp, FontWeight.Black).copy(
-                brush = if (alert) Palette.ClockAlertBrush else Palette.ClockBrush,
+                brush = if (alert.red > 0f) alertClockBrush(alert.red) else Palette.ClockBrush,
+                shadow = if (alert.red > 0f) {
+                    Shadow(Color(0xFFFF3C28).copy(alpha = 0.55f * alert.red * (0.4f + 0.6f * alert.beat)), blurRadius = 30f + 40f * alert.beat)
+                } else {
+                    null
+                },
             ),
             modifier = Modifier
-                .scale(if (alert) beat else 1f)
-                .alpha(if (vm.running || vm.finished) 1f else 0.35f),
+                .scale(pop * (1f + (0.03f + 0.05f * alert.red) * alert.beat))
+                .alpha(1f - 0.65f * dim),
         )
     }
 }
@@ -289,7 +335,7 @@ private fun ProgressBar(vm: TournamentViewModel) {
 }
 
 @Composable
-private fun BlindsCenter(vm: TournamentViewModel) {
+private fun BlindsCenter(vm: TournamentViewModel, alert: AlertFx, dim: Float, change: Float) {
     val level = vm.level
     Box(Modifier.fillMaxSize()) {
         Column(
@@ -303,32 +349,35 @@ private fun BlindsCenter(vm: TournamentViewModel) {
                 style = label(30, Palette.Gold, 0.5f),
             )
             Spacer(Modifier.height(10.dp))
-            Clock(vm)
+            Clock(vm, alert, dim, change)
             Spacer(Modifier.height(26.dp))
             ProgressBar(vm)
             Spacer(Modifier.height(40.dp))
-            Box(Modifier.alpha(if (vm.running || vm.finished) 1f else 0.5f)) {
-                Text(
-                    buildAnnotatedString {
-                        append(formatChips(level.smallBlind))
-                        withStyle(SpanStyle(color = Palette.Gold.copy(alpha = 0.45f), fontWeight = FontWeight.SemiBold)) {
-                            append(" / ")
-                        }
-                        append(formatChips(level.bigBlind))
-                    },
-                    style = tight(Display, 150.sp, FontWeight.ExtraBold, Palette.Gold, lineHeight = 1f),
+            // dopo un cambio livello i bui girano come i rulli di una slot (piccolo poi grande)
+            val prev = vm.previousLevel?.takeIf { change < 1f && !it.isChipChange }
+            val style = tight(Display, 150.sp, FontWeight.ExtraBold, Palette.Gold, lineHeight = 1f)
+            Row(Modifier.alpha(1f - 0.5f * dim), verticalAlignment = Alignment.CenterVertically) {
+                SlotNumber(
+                    prev?.let { formatChips(it.smallBlind) }, fakeChips(level.smallBlind), formatChips(level.smallBlind),
+                    phase(change, 0.04f, 0.83f), style, alignEnd = true,
+                )
+                Text(" / ", style = style.copy(color = Palette.Gold.copy(alpha = 0.45f), fontWeight = FontWeight.SemiBold))
+                SlotNumber(
+                    prev?.let { formatChips(it.bigBlind) }, fakeChips(level.bigBlind), formatChips(level.bigBlind),
+                    phase(change, 0.17f, 0.96f), style, alignEnd = false,
                 )
             }
             Spacer(Modifier.height(4.dp))
             Text("PICCOLO · GRANDE BUIO", style = label(24, Palette.Muted2, 0.42f))
         }
-        PauseBadge(vm)
-        HintOrHold(vm)
     }
 }
 
+/** Tre valori finti che passano nel rullo prima di fermarsi su [value]. */
+private fun fakeChips(value: Int) = listOf(1.8f, 0.6f, 1.4f).map { formatChips(((value * it) / 100).toInt().coerceAtLeast(1) * 100) }
+
 @Composable
-private fun ChipChangeCenter(vm: TournamentViewModel) {
+private fun ChipChangeCenter(vm: TournamentViewModel, alert: AlertFx, dim: Float, change: Float) {
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
@@ -338,7 +387,7 @@ private fun ChipChangeCenter(vm: TournamentViewModel) {
         ) {
             Text("CAMBIO FICHES", style = label(30, Palette.GoldLight, 0.5f))
             Spacer(Modifier.height(10.dp))
-            Clock(vm)
+            Clock(vm, alert, dim, change)
             Spacer(Modifier.height(26.dp))
             ProgressBar(vm)
             Spacer(Modifier.height(20.dp))
@@ -346,14 +395,8 @@ private fun ChipChangeCenter(vm: TournamentViewModel) {
             Spacer(Modifier.height(10.dp))
             Text("LE FICHES DA 100 ESCONO DAL TAVOLO", style = label(24, Palette.Muted2, 0.42f))
         }
-        PauseBadge(vm)
-        HintOrHold(vm)
     }
 }
-
-/** Fase 0..1 di [p] tra [from] e [to], con easing. */
-private fun phase(p: Float, from: Float, to: Float, easing: Easing = LinearEasing) =
-    easing.transform(((p - from) / (to - from)).coerceIn(0f, 1f))
 
 private val SlideEasing = CubicBezierEasing(0.5f, 0f, 0.2f, 1f)
 private val PopEasing = CubicBezierEasing(0.3f, 1.6f, 0.5f, 1f)
@@ -445,15 +488,41 @@ private fun Chip(value: String, color: Color, modifier: Modifier = Modifier) {
 
 @Composable
 private fun PauseBadge(vm: TournamentViewModel) {
-    if (vm.running) return
+    // Pausa: il badge cade dall'alto e rimbalza; alla ripresa si gonfia e sparisce.
+    val paused = !vm.running && !vm.finished
+    val drop = remember { Animatable(0f) }
+    val out = remember { Animatable(if (paused) 0f else 1f) }
+    LaunchedEffect(paused) {
+        if (paused) {
+            out.snapTo(0f)
+            drop.snapTo(0f)
+            drop.animateTo(1f, tween(900, easing = BounceEasing))
+        } else {
+            out.animateTo(1f, tween(300, easing = EaseOutCubic))
+        }
+    }
+    if (out.value >= 1f) return
+    val breath by rememberInfiniteTransition(label = "breath").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(1_570), RepeatMode.Reverse),
+        label = "b",
+    )
     Box(Modifier.fillMaxWidth().offset(y = 376.dp), contentAlignment = Alignment.TopCenter) {
         Box(
             Modifier
+                .graphicsLayer {
+                    translationY = -750f * (1f - drop.value)
+                    val s = 1f + 0.12f * out.value
+                    scaleX = s
+                    scaleY = s
+                    alpha = 1f - out.value
+                }
                 .drawBehind {
-                    val radius = size.width * 0.7f
+                    val radius = size.width * (0.6f + 0.2f * breath)
                     drawCircle(
                         brush = Brush.radialGradient(
-                            listOf(Palette.Gold.copy(alpha = 0.35f), Color.Transparent),
+                            listOf(Palette.Gold.copy(alpha = 0.3f + 0.25f * breath), Color.Transparent),
                             center = center,
                             radius = radius,
                         ),
@@ -464,7 +533,7 @@ private fun PauseBadge(vm: TournamentViewModel) {
                 .padding(start = 76.dp, end = 40.dp, top = 18.dp, bottom = 18.dp),
         ) {
             Text(
-                if (vm.finished) "FINE" else "PAUSA",
+                "PAUSA",
                 style = tight(Display, 120.sp, FontWeight.Black, Palette.FeltDark, letterSpacing = 36.sp),
             )
         }
@@ -482,6 +551,8 @@ private fun HintOrHold(vm: TournamentViewModel) {
         val hold = vm.holdAction
         if (hold != null) {
             HoldPill(hold, vm.holdProgress)
+        } else if (vm.finished) {
+            Hints("☰" to "menu")
         } else if (vm.running) {
             Hints("OK" to "pausa", "◀ ▶" to "tieni premuto per cambiare livello", "☰" to "menu")
         } else {

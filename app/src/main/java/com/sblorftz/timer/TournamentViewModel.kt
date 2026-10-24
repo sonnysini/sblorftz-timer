@@ -49,6 +49,16 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         private set
     private var holdJob: Job? = null
 
+    /** Istante (elapsedRealtime) dell'ultimo cambio livello, per l'animazione; 0 = nessuno. */
+    var levelChangedAt by mutableLongStateOf(0L)
+        private set
+    /** Livello da cui si è arrivati con l'ultimo cambio (per i rulli dei bui). */
+    var previousLevel: Level? = null
+        private set
+    /** Istante in cui il torneo è finito, per l'animazione; 0 = non finito. */
+    var finishedAt by mutableLongStateOf(0L)
+        private set
+
     private var lastTick = 0L
     private var lastSavedSecond = -1L
 
@@ -95,12 +105,14 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
 
         if (after == 0L) {
             if (levelIndex < structure.lastIndex) {
+                markLevelChange()
                 levelIndex++
                 remainingMs = level.durationMs
                 sounds.levelChange()
             } else {
                 running = false
                 finished = true
+                finishedAt = now
                 sounds.levelChange()
             }
             save()
@@ -207,6 +219,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
     private fun changeLevel(direction: Int) {
         val target = levelIndex + direction
         if (target !in structure.indices) return
+        markLevelChange()
         val restore = checkpointIndex == target && checkpointRemainingMs != null
         if (restore) {
             levelIndex = target
@@ -222,6 +235,11 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         finished = false
         sounds.levelChange()
         save()
+    }
+
+    private fun markLevelChange() {
+        previousLevel = level
+        levelChangedAt = SystemClock.elapsedRealtime()
     }
 
     fun updateStructure(levels: List<Level>) {
