@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -295,13 +296,16 @@ private fun LevelRow(
 @Composable
 private fun AddRow(onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
+    var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,
         modifier = Modifier
             .padding(start = (24 + 260).dp)
             .width((BLINDS_WIDTH + 40 + MINUTES_WIDTH).dp)
+            .onFocusChanged { focused = it.isFocused }
+            // Col focus c'è già il bordo oro pieno: il tratteggio sparisce.
             .drawBehind {
-                drawRoundRect(
+                if (!focused) drawRoundRect(
                     color = Palette.Gold.copy(alpha = 0.35f),
                     cornerRadius = CornerRadius(12.dp.toPx()),
                     style = Stroke(width = 2.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(14f, 10f))),
