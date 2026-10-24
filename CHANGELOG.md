@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0-beta3
+
+- Popup: le frecce non escono più dal riquadro
+- Note di aggiornamento più corte e leggibili
+
 ## 2.0-beta2
 
 - Struttura più pulita, senza bottoni: QR sempre in alto a destra per modificarla dallo smartphone

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -189,7 +190,8 @@ fun Overlay(
             Text(title, style = tight(Display, 64.sp, FontWeight.ExtraBold, Palette.Cream, lineHeight = 1.1f), textAlign = TextAlign.Center)
             if (subtitle != null) {
                 Spacer(Modifier.height(16.dp))
-                Text(subtitle, style = label(24, Palette.Muted, 0.02f, FontWeight.Medium), textAlign = TextAlign.Center)
+                // Testi lunghi (note di un aggiornamento) vanno a capo invece di allargare il popup.
+                Text(subtitle, style = label(24, Palette.Muted, 0.02f, FontWeight.Medium), textAlign = TextAlign.Center, modifier = Modifier.widthIn(max = 1000.dp))
             }
             if (actions.isNotEmpty()) Spacer(Modifier.height(44.dp))
             if (vertical) {
