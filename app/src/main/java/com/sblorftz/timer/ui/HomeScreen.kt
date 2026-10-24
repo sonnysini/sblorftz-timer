@@ -94,7 +94,7 @@ fun HomeScreen(
                 "SBLORFTZ".forEachIndexed { i, ch ->
                     if (ch == 'O') {
                         // Al posto della O la fiche oro, che arriva dopo le lettere.
-                        IntroChip(t, Modifier.padding(end = 30.dp).offset(y = CHIP_Y.dp).size(CHIP_D.dp))
+                        IntroChip(t, Modifier.padding(end = 8.dp).offset(y = CHIP_Y.dp).size(CHIP_D.dp))
                         return@forEachIndexed
                     }
                     Text(

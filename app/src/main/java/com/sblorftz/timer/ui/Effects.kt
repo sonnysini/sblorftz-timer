@@ -489,8 +489,8 @@ fun V2Badge(time: () -> Float, anchor: V2Anchor, modifier: Modifier = Modifier) 
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val glyph = tight(Display, 50.sp, FontWeight.Black, Palette.FeltDark, lineHeight = 1f)
-            Box(Modifier.size(V_W.dp, V2_H.dp).padding(start = 6.dp), contentAlignment = Alignment.Center) { Text("V", style = glyph) }
-            Box(Modifier.size(TWO_W.dp, V2_H.dp).padding(end = 6.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(V_W.dp, V2_H.dp).padding(start = 12.dp, end = 1.dp), contentAlignment = Alignment.CenterEnd) { Text("V", style = glyph) }
+            Box(Modifier.size(TWO_W.dp, V2_H.dp).padding(start = 1.dp, end = 10.dp), contentAlignment = Alignment.CenterStart) {
                 // In volo: 2 oro chiaro gigante e ruotato; all'impatto diventa scuro sull'oro.
                 Text(
                     "2",
