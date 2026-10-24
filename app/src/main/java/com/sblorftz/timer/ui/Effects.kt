@@ -424,8 +424,8 @@ fun FanCards(time: () -> Float, modifier: Modifier = Modifier) {
 
 // ---------------------------------------------------------------- badge V2 (intro home)
 
-private const val V2_POP = 2300f
-private const val V2_SLAM = 2900f
+private const val V2_POP = 3200f
+private const val V2_SLAM = 3800f
 private const val V2_HIT = V2_SLAM + 240f
 private const val V_W = 46f
 private const val TWO_W = 40f
@@ -444,7 +444,7 @@ fun v2Shake(t: Float): Offset {
     return Offset(k * sin(t / 9f), k * cos(t / 7f))
 }
 
-/** Badge oro accanto a TIMER: prima la V, poi il 2 arriva enorme e si schianta dentro. */
+/** Badge oro sotto TIMER, dentro il cronometro: prima la V, poi il 2 arriva enorme e si schianta dentro. */
 @Composable
 fun V2Badge(time: () -> Float, anchor: V2Anchor, modifier: Modifier = Modifier) {
     val shape = 10f
@@ -541,6 +541,107 @@ fun V2Impact(time: () -> Float, anchor: V2Anchor) {
             val p = Offset(c.x + cos(ang) * dist * k, c.y + sin(ang) * dist * k + 120f * k * k)
             drawCircle(Palette.Gold.copy(alpha = 0.5f * fade), 11f, p)
             drawCircle(Color(0xFFF7DC7A), 5f, p, alpha = fade)
+        }
+    }
+}
+
+// ---------------------------------------------------------------- fiche della O e cronometro (intro home)
+
+private const val CHIP_FALL = 1850f
+private const val CHIP_STOP = 2950f
+private const val WATCH_IN = 2950f
+
+private val EaseOutQuart = Easing { x -> 1f - (1f - x).pow(4) }
+
+/** Fiche oro (stessa grafica del mock 13-home-v5): bordo a 8 tacche crema, centro con anello tratteggiato. */
+private fun DrawScope.goldChip() {
+    val d = size.minDimension
+    val u = d / 230f
+    val c = center
+    val brush = Brush.linearGradient(listOf(Color(0xFFF7DC7A), Palette.Gold, Color(0xFFA8841F)), start = Offset.Zero, end = Offset(d, d))
+    drawCircle(brush, 112f * u, c)
+    val ring = 2f * PI.toFloat() * 97f * u / 16f
+    drawCircle(
+        Palette.Cream.copy(alpha = 0.9f), 97f * u, c,
+        style = Stroke(24f * u, pathEffect = PathEffect.dashPathEffect(floatArrayOf(ring, ring))),
+    )
+    drawCircle(brush, 74f * u, c)
+    drawCircle(Color(0xFF8A6A14), 74f * u, c, style = Stroke(4f * u))
+    drawCircle(
+        Palette.FeltDark.copy(alpha = 0.4f), 62f * u, c,
+        style = Stroke(3f * u, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f * u, 7f * u))),
+    )
+}
+
+/**
+ * La O di SBLORFTZ: cade dall'alto in verticale, fa 5 giri sull'asse verticale che rallentano
+ * fino a fermarsi dritta, poi un alone dorato che si spegne.
+ */
+@Composable
+fun IntroChip(time: () -> Float, modifier: Modifier = Modifier) {
+    Canvas(
+        modifier.graphicsLayer {
+            compositingStrategy = CompositingStrategy.Offscreen
+            val t = time()
+            alpha = phase(t, CHIP_FALL, CHIP_FALL + 100f)
+            translationY = -900f * (1f - phase(t, CHIP_FALL, CHIP_FALL + 650f, EaseOutCubic))
+            val k = phase(t, CHIP_FALL, CHIP_STOP, EaseOutQuart)
+            val flip = cos((1f - k) * PI.toFloat() * 10f)
+            scaleX = if (kotlin.math.abs(flip) < 0.06f) (if (flip < 0f) -0.06f else 0.06f) else flip
+        },
+    ) {
+        val t = time()
+        val glow = if (t >= CHIP_STOP) 1f - phase(t, CHIP_STOP, CHIP_STOP + 500f) else 0f
+        if (glow > 0f) {
+            drawCircle(
+                Brush.radialGradient(
+                    0.55f to Color(0xFFF7DC7A).copy(alpha = 0.95f * glow),
+                    1f to Color.Transparent,
+                    center = center, radius = size.minDimension * 0.75f,
+                ),
+                size.minDimension * 0.75f,
+            )
+        }
+        goldChip()
+    }
+}
+
+/** Cronometro tondo: TIMER sopra, badge V2 sotto. Entra con un pop dopo che la fiche si è fermata. */
+@Composable
+fun IntroStopwatch(time: () -> Float, anchor: V2Anchor, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(214.dp, 247.dp)
+            .graphicsLayer {
+                val t = time()
+                val k = phase(t, WATCH_IN, WATCH_IN + 400f, backEasing(1.6f))
+                alpha = phase(t, WATCH_IN, WATCH_IN + 200f)
+                scaleX = 0.6f + 0.4f * k
+                scaleY = scaleX
+            }
+            .drawBehind {
+                val cream = Palette.Cream
+                // corona e pulsante laterale
+                drawRoundRect(cream, Offset(size.width / 2 - 17f, 0f), Size(34f, 14f), androidx.compose.ui.geometry.CornerRadius(4f))
+                drawRect(cream, Offset(size.width / 2 - 7f, 12f), Size(14f, 14f))
+                val c = Offset(size.width / 2, size.height - 107f)
+                rotate(45f, pivot = Offset(c.x + 76f, c.y - 76f)) {
+                    drawRoundRect(cream, Offset(c.x + 76f - 11f, c.y - 76f - 14f - 6f), Size(22f, 12f), androidx.compose.ui.geometry.CornerRadius(3f))
+                }
+                drawCircle(Color(0xFF0F1F18), 103.5f, c)
+                drawCircle(cream, 103.5f, c, style = Stroke(7f))
+                drawCircle(Palette.Gold.copy(alpha = 0.45f), 92f, c, style = Stroke(2f))
+            },
+        contentAlignment = Alignment.BottomCenter,
+    ) {
+        Column(
+            Modifier.size(214.dp, 214.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+        ) {
+            Text("TIMER", style = tight(Display, 50.sp, FontWeight.Black, Palette.Cream, letterSpacing = 5.sp, lineHeight = 1f))
+            Spacer(Modifier.height(8.dp))
+            V2Badge(time, anchor)
         }
     }
 }

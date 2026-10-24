@@ -1,6 +1,9 @@
 package com.sblorftz.timer.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,24 +37,34 @@ import com.sblorftz.timer.Updater
 import kotlinx.coroutines.launch
 import com.sblorftz.timer.blindLevelCount
 
+// Misure della fiche e spazi del titolo (dp = px del mock 1920×1080), tarati sulla Fire TV.
+private const val CHIP_D = 160
+private const val CHIP_Y = 0
+private const val WATCH_GAP = 4
+private const val BUTTONS_GAP = 30
+
 @Composable
 fun HomeScreen(
     vm: TournamentViewModel,
     onResume: () -> Unit,
     onNew: () -> Unit,
     onStructure: () -> Unit,
+    onExit: () -> Unit,
 ) {
     var confirmNew by remember { mutableStateOf(false) }
+    var confirmExit by remember { mutableStateOf(false) }
     var update by remember { mutableStateOf<Updater.Update?>(null) }
     // null = non sta scaricando; -1 = errore; 0..1 = avanzamento.
     var download by remember { mutableStateOf<Float?>(null) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val first = remember { FocusRequester() }
-    val overlayOpen = confirmNew || update != null
+    val overlayOpen = confirmNew || confirmExit || update != null
     LaunchedEffect(overlayOpen) {
         if (!overlayOpen) runCatching { first.requestFocus() }
     }
+    // Indietro dalla home = chiudere davvero l'app (alla riapertura riparte l'intro).
+    BackHandler(enabled = !overlayOpen) { confirmExit = true }
     // Solo dalla home e una volta per avvio: mai in mezzo a un torneo.
     LaunchedEffect(Unit) {
         if (!Updater.checkedThisLaunch) {
@@ -60,9 +73,10 @@ fun HomeScreen(
         }
     }
 
-    // Intro (una volta per avvio): carte a ventaglio, lettere che cadono, badge V2 che si schianta, bottoni che salgono.
+    // Intro (una volta per avvio): carte a ventaglio, lettere che cadono, la fiche che diventa la O,
+    // cronometro con il badge V2 che si schianta, bottoni che salgono.
     val intro = remember { !HomeIntro.played }
-    val introTime = if (intro) rememberFrameTime(untilMs = 4_700) else remember { mutableStateOf(10_000L) }
+    val introTime = if (intro) rememberFrameTime(untilMs = 5_600) else remember { mutableStateOf(10_000L) }
     LaunchedEffect(Unit) { HomeIntro.played = true }
     val t = { introTime.value.toFloat() }
     val v2 = remember { V2Anchor() }
@@ -76,8 +90,13 @@ fun HomeScreen(
                 .padding(top = 170.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 "SBLORFTZ".forEachIndexed { i, ch ->
+                    if (ch == 'O') {
+                        // Al posto della O la fiche oro, che arriva dopo le lettere.
+                        IntroChip(t, Modifier.padding(end = 30.dp).offset(y = CHIP_Y.dp).size(CHIP_D.dp))
+                        return@forEachIndexed
+                    }
                     Text(
                         ch.toString(),
                         style = tight(Display, 190.sp, FontWeight.Black, Palette.Gold, letterSpacing = 30.sp),
@@ -90,22 +109,9 @@ fun HomeScreen(
                     )
                 }
             }
-            Spacer(Modifier.height(18.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "TIMER",
-                    style = label(30, Palette.Cream.copy(alpha = 0.45f), 0.45f),
-                    modifier = Modifier.graphicsLayer {
-                        compositingStrategy = CompositingStrategy.Offscreen
-                        val sub = phase(t(), 2000f, 2400f, EaseOutCubic)
-                        alpha = sub
-                        scaleX = 1.5f - 0.5f * sub
-                    },
-                )
-                Spacer(Modifier.width(8.dp))
-                V2Badge(t, v2)
-            }
-            Spacer(Modifier.height(82.dp))
+            Spacer(Modifier.height(WATCH_GAP.dp))
+            IntroStopwatch(t, v2)
+            Spacer(Modifier.height(BUTTONS_GAP.dp))
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(22.dp),
@@ -113,7 +119,7 @@ fun HomeScreen(
             ) {
                 fun rise(i: Int) = Modifier.graphicsLayer {
                     compositingStrategy = CompositingStrategy.Offscreen
-                    val a = phase(t(), 3300f + i * 120, 3800f + i * 120, EaseOutCubic)
+                    val a = phase(t(), 4200f + i * 120, 4700f + i * 120, EaseOutCubic)
                     alpha = a
                     translationY = 50f * (1f - a)
                 }
@@ -132,6 +138,17 @@ fun HomeScreen(
         V2Impact(t, v2)
         Box(Modifier.fillMaxSize().padding(bottom = 48.dp), contentAlignment = Alignment.BottomCenter) {
             Text("v${Updater.displayVersion(BuildConfig.VERSION_NAME)}", style = label(20, Palette.Muted2.copy(alpha = 0.6f), 0.2f, FontWeight.Medium))
+        }
+
+        if (confirmExit) {
+            Overlay(
+                title = "Vuoi uscire?",
+                subtitle = "Sblorftz Timer si chiude del tutto.",
+                actions = listOf(
+                    DialogAction("Annulla") { confirmExit = false },
+                    DialogAction("Esci", danger = true) { onExit() },
+                ),
+            )
         }
 
         if (confirmNew) {
