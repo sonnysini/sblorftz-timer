@@ -3,6 +3,8 @@
 ## 2.0-beta10
 
 - Struttura: "+ Aggiungi livello" ora aggiunge un livello a ogni OK (prima dal secondo in poi non faceva nulla)
+- Struttura: ☰ → Aggiungi livello / cambio fiches lo inserisce al posto del livello scelto (sopra), non sotto
+- Timer: suggerimenti per ◀ ▶ e ▲ ▼ sempre visibili, anche col tempo che scorre
 
 ## 2.0-beta9
 

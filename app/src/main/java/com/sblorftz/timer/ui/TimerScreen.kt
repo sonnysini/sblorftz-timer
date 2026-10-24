@@ -589,10 +589,13 @@ private fun HintOrHold(vm: TournamentViewModel) {
             HoldPill(hold, vm.holdProgress)
         } else if (vm.finished) {
             Hints("☰" to "menu")
-        } else if (vm.running) {
-            Hints("OK" to "pausa", "◀ ▶" to "tieni premuto per cambiare livello", "☰" to "menu")
         } else {
-            Hints("OK" to "riprendi", "▲ ▼" to "tieni premuto per ±1 minuto", "☰" to "menu")
+            Hints(
+                "OK" to if (vm.running) "pausa" else "riprendi",
+                "◀ ▶" to "tieni premuto: livello",
+                "▲ ▼" to "tieni premuto: ±1 minuto",
+                "☰" to "menu",
+            )
         }
     }
 }
