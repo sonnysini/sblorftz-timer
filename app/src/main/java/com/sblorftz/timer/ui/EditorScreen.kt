@@ -178,14 +178,14 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                     vertical = true,
                     buttonWidth = 680,
                     actions = listOfNotNull(
-                        DialogAction("Nuovo livello sotto") {
+                        DialogAction("Aggiungi livello") {
                             val base = structure.subList(0, d.index + 1).lastOrNull { !it.isChipChange }
                             val sb = base?.let { it.smallBlind + blindStep(it.smallBlind, true) } ?: 100
                             insertBelow(d.index, Level.blinds(sb, base?.minutes ?: 15))
                         },
-                        DialogAction("Cambio fiches sotto") { insertBelow(d.index, Level.chipChange()) },
-                        if (structure.size > 1) DialogAction("Elimina", danger = true) { dialog = EditorDialog.Delete(d.index) } else null,
-                        DialogAction("Ripristina predefinita") { dialog = EditorDialog.Restore },
+                        DialogAction("Aggiungi cambio fiches") { insertBelow(d.index, Level.chipChange()) },
+                        if (structure.size > 1) DialogAction("Elimina livello", danger = true) { dialog = EditorDialog.Delete(d.index) } else null,
+                        DialogAction("Ripristina predefinito") { dialog = EditorDialog.Restore },
                     ),
                 )
             }

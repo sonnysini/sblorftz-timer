@@ -205,7 +205,10 @@ private fun TopBar(vm: TournamentViewModel) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Brand()
-        Row(horizontalArrangement = Arrangement.spacedBy(56.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(56.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             val structure = vm.structure
             if (vm.level.isChipChange) {
                 MetaText("Pausa ", "cambio fiches", "")
@@ -213,7 +216,7 @@ private fun TopBar(vm: TournamentViewModel) {
                 MetaText("Livello ", "${structure.displayNumber(vm.levelIndex)}", " di ${structure.blindLevelCount()}")
             }
             MetaText("In gioco da ", formatDuration(vm.playedMs), "")
-            MetaText("", clock, "")
+            Text(clock, style = label(40, Palette.Cream, 0f, FontWeight.Bold))
         }
     }
 }
