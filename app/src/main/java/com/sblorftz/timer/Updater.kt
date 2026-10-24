@@ -45,7 +45,7 @@ object Updater {
         }.getOrNull()
     }
 
-    /** True se [tag] (es. `v2.0.1`) è una versione più alta di [current] (es. `2.0.0`). */
+    /** True se [tag] (es. `v2.0.1`, `v2.0-beta2`) è una versione più alta di [current] (es. `2.0.0`). */
     fun isNewer(tag: String, current: String): Boolean {
         val a = parts(tag)
         val b = parts(current)
@@ -54,7 +54,22 @@ object Updater {
             val y = b.getOrElse(i) { 0 }
             if (x != y) return x > y
         }
-        return false
+        // Stessi numeri: la finale (senza suffisso) batte la beta, beta2 batte beta1.
+        val sa = suffix(tag)
+        val sb = suffix(current)
+        return when {
+            sa == sb -> false
+            sa.isEmpty() -> true
+            sb.isEmpty() -> false
+            else -> (sa.filter(Char::isDigit).toIntOrNull() ?: 0) > (sb.filter(Char::isDigit).toIntOrNull() ?: 0)
+        }
+    }
+
+    private fun suffix(v: String) = v.trim().substringAfter('-', "")
+
+    /** `2.0-beta1` → `2.0 beta 1`, per mostrarla a schermo. */
+    fun displayVersion(v: String) = v.trimStart('v', 'V').replace(Regex("-beta(\\d*)")) { m ->
+        " beta" + m.groupValues[1].let { if (it.isEmpty()) "" else " $it" }
     }
 
     private fun parts(v: String) = v.trim().trimStart('v', 'V').substringBefore('-')

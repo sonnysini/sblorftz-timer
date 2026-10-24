@@ -87,7 +87,7 @@ fun HomeScreen(
             }
         }
         Box(Modifier.fillMaxSize().padding(bottom = 48.dp), contentAlignment = Alignment.BottomCenter) {
-            Text("v${BuildConfig.VERSION_NAME}", style = label(20, Palette.Muted2.copy(alpha = 0.6f), 0.2f, FontWeight.Medium))
+            Text("v${Updater.displayVersion(BuildConfig.VERSION_NAME)}", style = label(20, Palette.Muted2.copy(alpha = 0.6f), 0.2f, FontWeight.Medium))
         }
 
         if (confirmNew) {
@@ -108,7 +108,7 @@ fun HomeScreen(
             val d = download
             when {
                 d == null -> Overlay(
-                    title = "Aggiornamento ${u.versionName}",
+                    title = "Aggiornamento ${Updater.displayVersion(u.versionName)}",
                     subtitle = u.notes.ifBlank { "È uscita una nuova versione di Sblorftz Timer." },
                     actions = listOf(
                         DialogAction("Aggiorna") {
@@ -131,7 +131,7 @@ fun HomeScreen(
                     ),
                 )
                 else -> Overlay(
-                    title = "Scarico ${u.versionName}…",
+                    title = "Scarico ${Updater.displayVersion(u.versionName)}…",
                     subtitle = "${(d * 100).toInt()}%",
                     actions = emptyList(),
                 )
