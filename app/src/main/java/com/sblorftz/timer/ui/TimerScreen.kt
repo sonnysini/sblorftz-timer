@@ -2,6 +2,9 @@ package com.sblorftz.timer.ui
 
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -45,6 +48,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -337,17 +341,9 @@ private fun ChipChangeCenter(vm: TournamentViewModel) {
             Clock(vm)
             Spacer(Modifier.height(26.dp))
             ProgressBar(vm)
-            Spacer(Modifier.height(50.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(60.dp),
-            ) {
-                Chip("100", Palette.ChipBlack)
-                Text("× 5", style = tight(Display, 96.sp, FontWeight.ExtraBold))
-                Text("→", style = tight(Display, 96.sp, FontWeight.ExtraBold, Palette.Gold))
-                Chip("500", Palette.ChipPurple)
-            }
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(20.dp))
+            ChipMerge()
+            Spacer(Modifier.height(10.dp))
             Text("LE FICHES DA 100 ESCONO DAL TAVOLO", style = label(24, Palette.Muted2, 0.42f))
         }
         PauseBadge(vm)
@@ -355,11 +351,83 @@ private fun ChipChangeCenter(vm: TournamentViewModel) {
     }
 }
 
+/** Fase 0..1 di [p] tra [from] e [to], con easing. */
+private fun phase(p: Float, from: Float, to: Float, easing: Easing = LinearEasing) =
+    easing.transform(((p - from) / (to - from)).coerceIn(0f, 1f))
+
+private val SlideEasing = CubicBezierEasing(0.5f, 0f, 0.2f, 1f)
+private val PopEasing = CubicBezierEasing(0.3f, 1.6f, 0.5f, 1f)
+private val SqueezeEasing = CubicBezierEasing(0.42f, 0f, 1f, 1f)
+
+/**
+ * Animazione in loop da 4 s del cambio fiches: le 5 nere da 100 arrivano in pila (sfalsate),
+ * la pila si schiaccia con un lampo dorato e ne esce la viola da 500 (mock fiches-anim.html).
+ */
 @Composable
-private fun Chip(value: String, color: Color) {
+private fun ChipMerge() {
+    val p by rememberInfiniteTransition(label = "chipMerge").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(4_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "p",
+    )
+    Box(Modifier.width(900.dp).height(180.dp), contentAlignment = Alignment.Center) {
+        val flashIn = phase(p, 0.53f, 0.58f)
+        val flashOut = phase(p, 0.58f, 0.70f)
+        Box(
+            Modifier
+                .size(240.dp)
+                .graphicsLayer {
+                    alpha = flashIn * (1f - flashOut)
+                    scaleX = 0.3f + 0.7f * flashIn + 0.5f * flashOut
+                    scaleY = scaleX
+                }
+                .background(
+                    Brush.radialGradient(
+                        0f to Color(0xF2FFECAA),
+                        0.35f to Palette.Gold.copy(alpha = 0.55f),
+                        0.7f to Color.Transparent,
+                    ),
+                    CircleShape,
+                ),
+        )
+        for (i in 0 until 5) {
+            val stagger = i * 0.035f
+            val slide = phase(p, 0.12f + stagger, 0.32f + stagger, SlideEasing)
+            val squeeze = phase(p, 0.50f, 0.58f, SqueezeEasing)
+            Chip(
+                "100",
+                Palette.ChipBlack,
+                Modifier.graphicsLayer {
+                    alpha = phase(p, 0f, 0.06f) * (1f - phase(p, 0.56f, 0.58f))
+                    translationX = (i - 2) * 170f * (1f - slide)
+                    translationY = -i * 7f * slide * (1f - squeeze)
+                    scaleX = 1f - 0.3f * squeeze
+                    scaleY = scaleX
+                },
+            )
+        }
+        Chip(
+            "500",
+            Palette.ChipPurple,
+            Modifier.graphicsLayer {
+                alpha = phase(p, 0.56f, 0.68f) * (1f - phase(p, 0.92f, 1f))
+                scaleX = 0.2f + 1.05f * phase(p, 0.56f, 0.68f, PopEasing)
+                scaleY = scaleX
+            },
+        )
+    }
+}
+
+@Composable
+private fun Chip(value: String, color: Color, modifier: Modifier = Modifier) {
     Box(
-        Modifier
+        modifier
             .size(120.dp)
+            .drawBehind {
+                // spessore della fiche: serve a far leggere la pila
+                drawCircle(Color.Black.copy(alpha = 0.55f), center = center + Offset(0f, 6.dp.toPx()))
+            }
             .background(color, CircleShape)
             .drawBehind {
                 val stroke = 12.dp.toPx()
