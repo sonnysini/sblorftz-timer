@@ -131,11 +131,13 @@ fun TimerScreen(
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_UP -> {
-                            if (down) vm.adjustMinute(up = true)
+                            if (first) vm.startHold(HoldAction.Plus)
+                            if (up) vm.cancelHold()
                             true
                         }
                         KeyEvent.KEYCODE_DPAD_DOWN -> {
-                            if (down) vm.adjustMinute(up = false)
+                            if (first) vm.startHold(HoldAction.Minus)
+                            if (up) vm.cancelHold()
                             true
                         }
                         KeyEvent.KEYCODE_MENU -> {
@@ -241,7 +243,7 @@ private fun TopBar(vm: TournamentViewModel) {
                 MetaText("Livello ", "${structure.displayNumber(vm.levelIndex)}", " di ${structure.blindLevelCount()}")
             }
             MetaText("In gioco da ", formatDuration(vm.playedMs), "")
-            Text(clock, style = label(40, Palette.Cream, 0f, FontWeight.Bold))
+            Text(clock, style = label(40, Palette.Gold, 0f, FontWeight.Bold))
         }
     }
 }
@@ -590,14 +592,19 @@ private fun HintOrHold(vm: TournamentViewModel) {
         } else if (vm.running) {
             Hints("OK" to "pausa", "◀ ▶" to "tieni premuto per cambiare livello", "☰" to "menu")
         } else {
-            Hints("OK" to "riprendi", "▲ ▼" to "±1 minuto", "☰" to "menu")
+            Hints("OK" to "riprendi", "▲ ▼" to "tieni premuto per ±1 minuto", "☰" to "menu")
         }
     }
 }
 
 @Composable
 private fun HoldPill(action: HoldAction, progress: Float) {
-    val text = if (action == HoldAction.Next) "LIVELLO SUCCESSIVO  ▶" else "◀  LIVELLO PRECEDENTE"
+    val text = when (action) {
+        HoldAction.Next -> "LIVELLO SUCCESSIVO  ▶"
+        HoldAction.Previous -> "◀  LIVELLO PRECEDENTE"
+        HoldAction.Plus -> "▲  +1 MINUTO"
+        HoldAction.Minus -> "▼  −1 MINUTO"
+    }
     Box(
         Modifier
             .width(620.dp)
