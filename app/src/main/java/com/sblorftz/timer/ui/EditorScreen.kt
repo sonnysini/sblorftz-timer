@@ -83,18 +83,21 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
         }
     }
 
+    // Sempre vm.structure, mai la `structure` catturata: la riga "add" (key fissa) può tenersi
+    // la lambda della composizione precedente e riaggiungere alla lista vecchia (2° OK a vuoto).
     fun update(index: Int, level: Level) {
-        vm.updateStructure(structure.toMutableList().also { it[index] = level })
+        vm.updateStructure(vm.structure.toMutableList().also { it[index] = level })
     }
 
     fun append() {
-        val last = structure.lastOrNull { !it.isChipChange }
-        vm.updateStructure(structure + Level.blinds((last?.smallBlind ?: 50) * 2, last?.minutes ?: 15))
+        val current = vm.structure
+        val last = current.lastOrNull { !it.isChipChange }
+        vm.updateStructure(current + Level.blinds((last?.smallBlind ?: 50) * 2, last?.minutes ?: 15))
         focusRow = null
     }
 
     fun insertBelow(index: Int, level: Level) {
-        vm.updateStructure(structure.toMutableList().also { it.add(index + 1, level) })
+        vm.updateStructure(vm.structure.toMutableList().also { it.add(index + 1, level) })
         dialog = null
         editing = null
         focusRow = index + 1

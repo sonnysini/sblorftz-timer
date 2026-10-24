@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta10
+
+- Struttura: "+ Aggiungi livello" ora aggiunge un livello a ogni OK (prima dal secondo in poi non faceva nulla)
+
 ## 2.0-beta9
 
 - Battito del cuore udibile fino alla fine dei 10 secondi
