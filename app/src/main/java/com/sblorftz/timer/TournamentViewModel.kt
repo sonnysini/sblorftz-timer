@@ -15,7 +15,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-enum class HoldAction { Previous, Next }
+enum class HoldAction { Previous, Next, Plus, Minus }
 
 class TournamentViewModel(app: Application) : AndroidViewModel(app) {
     private val store = Store(app)
@@ -186,6 +186,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         val possible = when (action) {
             HoldAction.Previous -> levelIndex > 0
             HoldAction.Next -> levelIndex < structure.lastIndex
+            HoldAction.Plus, HoldAction.Minus -> true
         }
         if (!possible) return
         holdAction = action
@@ -197,7 +198,12 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
                 holdProgress = p.coerceAtMost(1f)
                 if (p >= 1f) {
                     clearHold()
-                    changeLevel(if (action == HoldAction.Next) 1 else -1)
+                    when (action) {
+                        HoldAction.Next -> changeLevel(1)
+                        HoldAction.Previous -> changeLevel(-1)
+                        HoldAction.Plus -> adjustMinute(up = true)
+                        HoldAction.Minus -> adjustMinute(up = false)
+                    }
                     break
                 }
                 delay(16)

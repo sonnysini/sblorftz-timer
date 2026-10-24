@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta9
+
+- Battito del cuore udibile fino alla fine dei 10 secondi
+- ▲ ▼ cambiano di 1 minuto solo tenendo premuto 1 secondo
+- Orologio in alto in oro
+
 ## 2.0-beta8
 
 - Intro: la fiche oro cade e diventa la O di SBLORFTZ, sotto il cronometro con TIMER e V2
