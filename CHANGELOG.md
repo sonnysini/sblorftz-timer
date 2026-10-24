@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0-beta4
+
+- Orologio in alto a destra più grande
+- Menu ☰ della struttura: scritte più chiare
+
 ## 2.0-beta3
 
 - Popup: le frecce non escono più dal riquadro
