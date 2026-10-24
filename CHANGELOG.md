@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta5
+
+- Cambio fiches animato: 5 fiche nere da 100 diventano una viola da 500
+
 ## 2.0-beta4
 
 - Orologio in alto a destra più grande
