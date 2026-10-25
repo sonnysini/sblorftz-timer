@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta13
+
+- Tolte le animazioni della beta 12: orologio, Struttura e popup tornano come nella beta 11
+
 ## 2.0-beta12
 
 - Timer: i secondi scendono a rulli, le cifre che cambiano a cascata

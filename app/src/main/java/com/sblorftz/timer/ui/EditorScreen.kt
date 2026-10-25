@@ -1,6 +1,5 @@
 package com.sblorftz.timer.ui
 
-import android.os.SystemClock
 import android.view.KeyEvent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -35,7 +34,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -60,8 +58,6 @@ private const val TABLE_WIDTH = 1480
 private const val BLINDS_WIDTH = 720
 private const val MINUTES_WIDTH = 412
 
-private const val ENTER_MS = 1_500
-
 private enum class Field { Blinds, Minutes }
 
 private sealed interface EditorDialog {
@@ -76,17 +72,6 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     var focusRow by remember { mutableStateOf<Int?>(0) }
     val listState = rememberLazyListState()
     val structure = vm.structure
-    // Entrata a cascata (titolo, intestazione, righe) e riquadro del focus che scivola tra le celle.
-    val openedAt = remember { SystemClock.elapsedRealtime() }
-    val enter = rememberSince(openedAt, ENTER_MS)
-    val ms = { enter.value * ENTER_MS }
-    val hl = rememberSlidingHighlight()
-    fun Modifier.enter(startMs: Int, dx: Int = 0, dy: Int = 0) = graphicsLayer {
-        val p = phase(ms(), startMs.toFloat(), startMs + 550f, EaseOutCubic)
-        alpha = p
-        translationX = (1f - p) * dx.dp.toPx()
-        translationY = (1f - p) * dy.dp.toPx()
-    }
 
     // La struttura si salva a ogni modifica: Indietro è l'unico modo di uscire.
     BackHandler {
@@ -133,7 +118,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     TableBackground {
         Box(Modifier.fillMaxSize().padding(top = 56.dp, bottom = 48.dp), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.width(TABLE_WIDTH.dp).fillMaxHeight()) {
-            Row(Modifier.fillMaxWidth().enter(0, dy = 30), verticalAlignment = Alignment.Top) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
                     Brand()
                     Spacer(Modifier.height(28.dp))
@@ -148,7 +133,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
             }
 
             Spacer(Modifier.height(40.dp))
-            Row(Modifier.padding(horizontal = 24.dp).enter(220, dy = 30)) {
+            Row(Modifier.padding(horizontal = 24.dp)) {
                 Text("LIVELLO", style = label(20), modifier = Modifier.width(260.dp))
                 Text("PICCOLO / GRANDE BUIO", style = label(20), modifier = Modifier.width((BLINDS_WIDTH + 40).dp))
                 Text("DURATA", style = label(20), modifier = Modifier.width(MINUTES_WIDTH.dp))
@@ -159,10 +144,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 24.dp, top = 6.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .slidingHost(hl, radius = 12f, fill = 0.22f, border = 3f, alpha = { phase(ms(), 700f, 1000f) }),
+                modifier = Modifier.fillMaxWidth().weight(1f),
             ) {
                 itemsIndexed(structure) { index, level ->
                     val requester = remember { FocusRequester() }
@@ -178,8 +160,6 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                         current = vm.hasSavedSession && vm.levelIndex == index,
                         editing = editing?.takeIf { it.first == index }?.second,
                         firstCell = requester,
-                        highlight = hl,
-                        modifier = Modifier.enter(250 + index.coerceAtMost(12) * 55, dx = 120),
                         onEdit = { field -> editing = if (editing == index to field) null else index to field },
                         onChange = { update(index, it) },
                         onMenu = {
@@ -188,11 +168,11 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                         },
                     )
                 }
-                item(key = "add") { AddRow(hl, Modifier.enter(250 + structure.size.coerceAtMost(12) * 55, dx = 120), ::append) }
+                item(key = "add") { AddRow(::append) }
             }
 
             Spacer(Modifier.height(20.dp))
-            Box(Modifier.fillMaxWidth().enter(400, dy = 30), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Hints("OK" to "modifica", "☰" to "opzioni livello", "INDIETRO" to "salva ed esci")
             }
         }
@@ -251,14 +231,12 @@ private fun LevelRow(
     current: Boolean,
     editing: Field?,
     firstCell: FocusRequester,
-    highlight: SlidingHighlight,
     onEdit: (Field) -> Unit,
     onChange: (Level) -> Unit,
     onMenu: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier
+        Modifier
             .padding(horizontal = 24.dp)
             // ☰ su una qualsiasi cella della riga apre le opzioni del livello.
             .onPreviewKeyEvent { e ->
@@ -282,7 +260,7 @@ private fun LevelRow(
                 text = "CAMBIO FICHES",
                 width = BLINDS_WIDTH,
                 editing = false,
-                modifier = Modifier.focusRequester(firstCell).slidingTarget(highlight),
+                modifier = Modifier.focusRequester(firstCell),
                 warm = true,
                 onClick = onMenu,
             )
@@ -291,7 +269,7 @@ private fun LevelRow(
                 text = "${formatChips(level.smallBlind)} / ${formatChips(level.bigBlind)}",
                 width = BLINDS_WIDTH,
                 editing = editing == Field.Blinds,
-                modifier = Modifier.focusRequester(firstCell).slidingTarget(highlight),
+                modifier = Modifier.focusRequester(firstCell),
                 onClick = { onEdit(Field.Blinds) },
                 onStep = { up ->
                     val sb = (level.smallBlind + (if (up) 1 else -1) * blindStep(level.smallBlind, up))
@@ -305,7 +283,6 @@ private fun LevelRow(
             text = "${level.minutes} min",
             width = MINUTES_WIDTH,
             editing = editing == Field.Minutes,
-            modifier = Modifier.slidingTarget(highlight),
             onClick = { onEdit(Field.Minutes) },
             onStep = { up ->
                 onChange(level.copy(minutes = (level.minutes + if (up) 1 else -1).coerceIn(1, 120)))
@@ -316,15 +293,14 @@ private fun LevelRow(
 
 /** Ultima riga della tabella, tratteggiata: OK aggiunge un livello in fondo. */
 @Composable
-private fun AddRow(highlight: SlidingHighlight, modifier: Modifier, onClick: () -> Unit) {
+private fun AddRow(onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     var focused by remember { mutableStateOf(false) }
     Surface(
         onClick = onClick,
-        modifier = modifier
+        modifier = Modifier
             .padding(start = (24 + 260).dp)
             .width((BLINDS_WIDTH + 40 + MINUTES_WIDTH).dp)
-            .slidingTarget(highlight)
             .onFocusChanged { focused = it.isFocused }
             // Col focus c'è già il bordo oro pieno: il tratteggio sparisce.
             .drawBehind {
@@ -338,11 +314,13 @@ private fun AddRow(highlight: SlidingHighlight, modifier: Modifier, onClick: () 
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = Palette.Gold.copy(alpha = 0.8f),
-            // pieno e bordo oro col focus li disegna il riquadro che scivola
-            focusedContainerColor = Color.Transparent,
+            focusedContainerColor = Palette.Gold.copy(alpha = 0.22f),
             focusedContentColor = Palette.Cream,
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        border = ClickableSurfaceDefaults.border(
+            focusedBorder = Border(BorderStroke(3.dp, Palette.Gold), shape = shape),
+        ),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
     ) {
         Box(Modifier.fillMaxWidth().padding(vertical = 22.dp), contentAlignment = Alignment.Center) {
             Text("+  AGGIUNGI LIVELLO", style = label(24, LocalContentColor.current, 0.3f, FontWeight.Bold))
@@ -385,15 +363,14 @@ private fun Cell(
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (editing) accent else Color.White.copy(alpha = 0.04f),
             contentColor = if (editing) Palette.FeltDark else if (warm) Palette.GoldLight else Palette.Cream,
-            // senza modifica il riquadro oro col focus è quello che scivola dietro (EditorScreen)
-            focusedContainerColor = if (editing) accent else Color.Transparent,
+            focusedContainerColor = if (editing) accent else accent.copy(alpha = 0.22f),
             focusedContentColor = if (editing) Palette.FeltDark else Palette.Cream,
         ),
         border = ClickableSurfaceDefaults.border(
             border = Border(BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)), shape = shape),
-            focusedBorder = Border(BorderStroke(if (editing) 3.dp else 1.dp, if (editing) accent else Color.Transparent), shape = shape),
+            focusedBorder = Border(BorderStroke(3.dp, accent), shape = shape),
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
     ) {
         Box(
             Modifier
