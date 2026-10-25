@@ -2,7 +2,9 @@
 
 ## 2.0-beta17
 
-- Boom del cambio livello con la coda dell'esplosione più lunga (anche cambio fiches, fine torneo e cambi a mano)
+- Cambio fiches: tic-tac a ogni secondo con un ronzio basso sotto
+- Rumore di fiches quando la pila si forma; negli ultimi 10 s resta la 500 che gira
+- Boom del cambio livello con la coda dell'esplosione più lunga
 
 ## 2.0-beta16
 
