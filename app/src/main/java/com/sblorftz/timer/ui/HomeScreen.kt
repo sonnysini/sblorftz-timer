@@ -77,6 +77,7 @@ fun HomeScreen(
     // cronometro con il badge V2 che si schianta, bottoni che salgono.
     val intro = remember { !HomeIntro.played }
     val introTime = if (intro) rememberFrameTime(untilMs = 5_600) else remember { mutableStateOf(10_000L) }
+    if (intro) IntroSound()
     LaunchedEffect(Unit) { HomeIntro.played = true }
     val t = { introTime.value.toFloat() }
     val v2 = remember { V2Anchor() }

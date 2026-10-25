@@ -1,5 +1,6 @@
 package com.sblorftz.timer.ui
 
+import android.media.MediaPlayer
 import android.os.SystemClock
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -33,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -375,6 +378,22 @@ private fun Trophy(modifier: Modifier) {
 /** L'intro della home si vede una volta per avvio dell'app. */
 object HomeIntro {
     var played = false
+}
+
+/**
+ * Suono dell'intro (res/raw/intro.ogg): effetti + voce montati sui ms di questa animazione.
+ * Parte prima del primo frame, insieme all'orologio di [rememberFrameTime]; il file è già
+ * anticipato di 80 ms per compensare il ritardo audio dell'HDMI.
+ */
+@Composable
+fun IntroSound() {
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val player = runCatching { MediaPlayer.create(context, com.sblorftz.timer.R.raw.intro) }.getOrNull()
+        player?.setOnCompletionListener { it.release() }
+        player?.start()
+        onDispose { runCatching { player?.release() } }
+    }
 }
 
 private val suits = listOf("♠" to Palette.Cream, "♥" to Color(0xFFD9443A), "♣" to Palette.Cream, "♦" to Color(0xFFD9443A))
