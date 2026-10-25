@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta12
+
+- Timer: i secondi scendono a rulli, le cifre che cambiano a cascata
+- Struttura: righe che entrano a cascata e riquadro oro che scivola da una cella all'altra
+- Menu e popup: entrano con un piccolo rimbalzo, bottoni a cascata, pillola oro che scivola tra le voci
+
 ## 2.0-beta11
 
 - Struttura: Elimina livello toglie subito il livello, senza conferma

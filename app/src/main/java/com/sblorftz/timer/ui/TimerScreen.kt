@@ -38,6 +38,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -336,10 +337,22 @@ private fun Clock(vm: TournamentViewModel, fx: Fx) {
                 alpha = 1f - 0.65f * fx.dim
             },
     ) {
+        // cifre a rulli: a ogni secondo scende la cifra che cambia (unità per prima, le altre a cascata);
         // due strati (bianco e rosso) incrociati in alpha: niente relayout del testo a ogni frame
-        val style = tight(Display, 420.sp, FontWeight.Black)
-        Text(text, style = style.copy(brush = Palette.ClockBrush), modifier = Modifier.graphicsLayer { alpha = 1f - fx.red })
-        Text(text, style = style.copy(brush = alertClockBrush(1f)), modifier = Modifier.graphicsLayer { alpha = fx.red })
+        val style = tight(Display, 420.sp, FontWeight.Black).copy(fontFeatureSettings = "tnum")
+        Row {
+            text.forEachIndexed { i, c ->
+                if (c.isDigit()) {
+                    val rank = text.substring(i + 1).count { it.isDigit() }
+                    key(text.length - i) { RollingDigit(c, delayMs = rank * 60, style = style, red = { fx.red }) }
+                } else {
+                    Box {
+                        Text("$c", style = style.copy(brush = Palette.ClockBrush), modifier = Modifier.graphicsLayer { alpha = 1f - fx.red })
+                        Text("$c", style = style.copy(brush = alertClockBrush(1f)), modifier = Modifier.graphicsLayer { alpha = fx.red })
+                    }
+                }
+            }
+        }
     }
 }
 
