@@ -71,6 +71,9 @@ private const val MINUTES_WIDTH = 412
 private enum class Field { Blinds, Minutes }
 
 private const val ENTER_MS = 1300
+// L'uscita rifà l'entrata al contrario, un po' più svelta; sotto i 150 ms dell'entrata non c'è niente da vedere.
+private const val EXIT_MS = 900
+private const val EXIT_END = 150f
 
 /** Riga i-esima dell'entrata a cascata: solo graphicsLayer, nessuna ricomposizione per frame. */
 private fun Modifier.enterRow(enter: Animatable<Float, *>, index: Int) = graphicsLayer {
@@ -107,12 +110,23 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     val enter = remember { Animatable(0f) }
     LaunchedEffect(Unit) { enter.animateTo(ENTER_MS.toFloat(), tween(ENTER_MS, easing = LinearEasing)) }
 
+    // Uscita: la cascata al contrario (le ultime righe escono per prime), poi si torna alla home.
+    var exiting by remember { mutableStateOf(false) }
+    LaunchedEffect(exiting) {
+        if (!exiting) return@LaunchedEffect
+        val from = enter.value.coerceAtLeast(EXIT_END)
+        val ms = ((from - EXIT_END) / (ENTER_MS - EXIT_END) * EXIT_MS).toInt()
+        enter.animateTo(EXIT_END, tween(ms, easing = LinearEasing))
+        onDone()
+    }
+
     // La struttura si salva a ogni modifica: Indietro è l'unico modo di uscire.
     BackHandler {
         when {
+            exiting -> Unit
             dialog != null -> dialog = null
             editing != null -> editing = null
-            else -> onDone()
+            else -> exiting = true
         }
     }
 
