@@ -22,6 +22,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -119,17 +120,20 @@ fun GoldButton(
     glide: Glide? = null,
 ) {
     val accent = if (danger) Palette.Red else Palette.Gold
+    val target = rememberGlideTarget()
+    // Il testo diventa scuro solo quando la pillola oro gli è arrivata sotto.
+    val focusedText = if (glide != null) lerp(Palette.Cream, Palette.FeltDark, target.arrived.value) else Palette.FeltDark
     Surface(
         onClick = onClick,
         modifier = (if (width != null) modifier.width(width.dp) else modifier)
-            .then(if (glide != null) Modifier.glide(glide, accent, fill = 1f, border = 0.dp, radius = 14.dp) else Modifier),
+            .then(if (glide != null) Modifier.glide(glide, accent, fill = 1f, border = 0.dp, radius = 14.dp, target = target) else Modifier),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.White.copy(alpha = 0.03f),
             contentColor = Palette.Cream,
             // Con glide la pillola oro la disegna il riquadro che scivola.
             focusedContainerColor = if (glide != null) Color.Transparent else accent,
-            focusedContentColor = Palette.FeltDark,
+            focusedContentColor = focusedText,
             pressedContainerColor = accent,
             pressedContentColor = Palette.FeltDark,
         ),

@@ -45,16 +45,21 @@ class Glide {
 @Composable
 fun rememberGlide(): Glide = remember { Glide() }
 
-internal class GlideTarget {
-    var coords: LayoutCoordinates? = null
-    var focused by mutableStateOf(false)
+@Composable
+fun rememberGlideTarget(): GlideTarget = remember { GlideTarget() }
+
+class GlideTarget {
+    internal var coords: LayoutCoordinates? = null
+    internal var focused by mutableStateOf(false)
+    /** 0 = riquadro appena partito, 1 = arrivato: per cambiare colore al testo quando ci è sotto. */
+    val arrived = Animatable(1f)
     val dx = Animatable(0f)
     val dy = Animatable(0f)
     val dw = Animatable(0f)
     val dh = Animatable(0f)
 
     /** Dove si vede il riquadro adesso, in coordinate dello schermo. */
-    fun visualRect(): Rect? {
+    internal fun visualRect(): Rect? {
         val c = coords?.takeIf { it.isAttached } ?: return null
         val p = c.positionInRoot()
         val s = c.size.toSize()
@@ -68,8 +73,9 @@ fun Modifier.glide(
     fill: Float = 0.2f,
     border: Dp = 3.dp,
     radius: Dp = 12.dp,
+    target: GlideTarget? = null,
 ): Modifier = composed {
-    val t = remember { GlideTarget() }
+    val t = target ?: remember { GlideTarget() }
     val scope = rememberCoroutineScope()
     onGloballyPositioned { t.coords = it }
         .onFocusChanged { st ->
@@ -80,7 +86,7 @@ fun Modifier.glide(
                 // UNDISPATCHED: lo spostamento iniziale è già pronto al primo frame (niente lampo sulla cella).
                 scope.launch(start = CoroutineStart.UNDISPATCHED) {
                     if (from == null || me == null) {
-                        t.dx.snapTo(0f); t.dy.snapTo(0f); t.dw.snapTo(0f); t.dh.snapTo(0f)
+                        t.dx.snapTo(0f); t.dy.snapTo(0f); t.dw.snapTo(0f); t.dh.snapTo(0f); t.arrived.snapTo(1f)
                         return@launch
                     }
                     val p = me.positionInRoot()
@@ -89,11 +95,13 @@ fun Modifier.glide(
                     t.dy.snapTo(from.top - p.y)
                     t.dw.snapTo(from.width - s.width)
                     t.dh.snapTo(from.height - s.height)
+                    t.arrived.snapTo(0f)
                     val spec = tween<Float>(GLIDE_MS, easing = GlideEase)
                     launch { t.dx.animateTo(0f, spec) }
                     launch { t.dy.animateTo(0f, spec) }
                     launch { t.dw.animateTo(0f, spec) }
                     launch { t.dh.animateTo(0f, spec) }
+                    launch { t.arrived.animateTo(1f, spec) }
                 }
             }
             t.focused = st.hasFocus
