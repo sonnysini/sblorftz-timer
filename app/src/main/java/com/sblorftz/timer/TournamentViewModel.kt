@@ -106,19 +106,19 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         remainingMs = after
         playedMs += delta
 
-        if (before > 60_000 && after <= 60_000) sounds.oneMinute()
+        if (before > 60_000 && after <= 60_000) sounds.oneMinute(toChipChange = nextLevel?.isChipChange == true)
         if (before > 10_000 && after <= 10_000) sounds.tenSeconds()
         val last = levelIndex == structure.lastIndex
         // Il boom parte in anticipo così il colpo cade sul cambio; la scia passa il centro sul cambio.
         if (before > SOUND_LEAD_MS && after <= SOUND_LEAD_MS) {
             soundLed = true
-            if (last) sounds.levelEnd() else sounds.levelChange()
+            if (last) sounds.levelEnd() else sounds.levelChange(structure[levelIndex + 1])
         }
         if (before > SWEEP_LEAD_MS && after <= SWEEP_LEAD_MS) sweepAt = now
 
         if (after == 0L) {
             if (!soundLed) {
-                if (last) sounds.levelEnd(now = true) else sounds.levelChange(now = true)
+                if (last) sounds.levelEnd(now = true) else sounds.levelChange(structure[levelIndex + 1], now = true)
                 sweepAt = now
             }
             soundLed = false
@@ -266,7 +266,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         }
         soundLed = false
         finished = false
-        sounds.levelChange(now = true)
+        sounds.levelChange(level, now = true)
         save()
     }
 
