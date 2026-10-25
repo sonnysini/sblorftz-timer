@@ -19,7 +19,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -67,6 +70,16 @@ private const val MINUTES_WIDTH = 412
 
 private enum class Field { Blinds, Minutes }
 
+private const val ENTER_MS = 1300
+
+/** Riga i-esima dell'entrata a cascata: solo graphicsLayer, nessuna ricomposizione per frame. */
+private fun Modifier.enterRow(enter: Animatable<Float, *>, index: Int) = graphicsLayer {
+    val start = 150f + index.coerceAtMost(10) * 55f
+    val p = phase(enter.value, start, start + 550f, EaseOutCubic)
+    alpha = p
+    translationX = (1f - p) * 120.dp.toPx()
+}
+
 /** Scorre quanto lo scorrimento normale, ma in 150 ms come il riquadro: lista e focus arrivano insieme. */
 @OptIn(ExperimentalFoundationApi::class)
 private class QuickScroll(private val base: BringIntoViewSpec) : BringIntoViewSpec {
@@ -90,6 +103,9 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     val listState = rememberLazyListState()
     val structure = vm.structure
     val glide = rememberGlide()
+    // Entrata: le righe arrivano da destra una dopo l'altra (solo all'apertura).
+    val enter = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { enter.animateTo(ENTER_MS.toFloat(), tween(ENTER_MS, easing = LinearEasing)) }
 
     // La struttura si salva a ogni modifica: Indietro è l'unico modo di uscire.
     BackHandler {
@@ -175,6 +191,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                             focusRow = -1
                         }
                     }
+                    Box(Modifier.enterRow(enter, index)) {
                     LevelRow(
                         glide = glide,
                         level = level,
@@ -189,8 +206,9 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                             dialog = EditorDialog.Menu(index)
                         },
                     )
+                    }
                 }
-                item(key = "add") { AddRow(glide, ::append) }
+                item(key = "add") { Box(Modifier.enterRow(enter, structure.size)) { AddRow(glide, ::append) } }
             }
             }
 

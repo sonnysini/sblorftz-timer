@@ -5,6 +5,7 @@
 - Riquadro di selezione che scivola da una casella all'altra in Struttura e nei menu
 - La lista scorre insieme al riquadro, anche tenendo premuto
 - I popup compaiono con una dissolvenza
+- Aprendo la struttura le righe entrano a cascata
 
 ## 2.0-beta19
 
