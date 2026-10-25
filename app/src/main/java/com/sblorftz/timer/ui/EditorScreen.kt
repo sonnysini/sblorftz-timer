@@ -62,7 +62,6 @@ private enum class Field { Blinds, Minutes }
 
 private sealed interface EditorDialog {
     data class Menu(val index: Int) : EditorDialog
-    data class Delete(val index: Int) : EditorDialog
     data object Restore : EditorDialog
 }
 
@@ -197,26 +196,13 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                             insertAt(d.index, Level.blinds(sb, if (level.isChipChange) prev?.minutes ?: 15 else level.minutes))
                         },
                         DialogAction("Aggiungi cambio fiches") { insertAt(d.index, Level.chipChange()) },
-                        if (structure.size > 1) DialogAction("Elimina livello", danger = true) { dialog = EditorDialog.Delete(d.index) } else null,
-                        DialogAction("Ripristina predefinito") { dialog = EditorDialog.Restore },
-                    ),
-                )
-            }
-            is EditorDialog.Delete -> {
-                val level = structure[d.index]
-                Overlay(
-                    title = if (level.isChipChange) "Eliminare il cambio fiches?"
-                    else "Eliminare il livello ${structure.displayNumber(d.index)}?",
-                    subtitle = if (level.isChipChange) "${level.minutes} min"
-                    else "${formatChips(level.smallBlind)} / ${formatChips(level.bigBlind)} · ${level.minutes} min",
-                    actions = listOf(
-                        DialogAction("Annulla") { dialog = null },
-                        DialogAction("Elimina", danger = true) {
-                            vm.updateStructure(structure.toMutableList().also { it.removeAt(d.index) })
+                        if (structure.size > 1) DialogAction("Elimina livello", danger = true) {
+                            vm.updateStructure(vm.structure.toMutableList().also { it.removeAt(d.index) })
                             dialog = null
                             editing = null
-                            focusRow = d.index.coerceAtMost(structure.size - 2)
-                        },
+                            focusRow = d.index.coerceAtMost(vm.structure.lastIndex)
+                        } else null,
+                        DialogAction("Ripristina predefinito") { dialog = EditorDialog.Restore },
                     ),
                 )
             }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta11
+
+- Struttura: Elimina livello toglie subito il livello, senza conferma
+
 ## 2.0-beta10
 
 - Struttura: "+ Aggiungi livello" ora aggiunge un livello a ogni OK (prima dal secondo in poi non faceva nulla)
