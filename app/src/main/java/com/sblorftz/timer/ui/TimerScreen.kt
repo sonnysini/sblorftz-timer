@@ -39,6 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.MutableLongState
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.produceState
@@ -50,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -84,6 +87,8 @@ import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.floor
+import kotlin.math.sin
 
 private const val CLOCK_HEIGHT = 380
 
@@ -359,20 +364,97 @@ private fun ProgressBar(vm: TournamentViewModel) {
     // Parte piena e si svuota da destra verso sinistra: quello che resta è il tempo che manca.
     val left = vm.remainingMs / total.toFloat()
     val lastMinute = vm.remainingMs <= 60_000
+    // Orologio della miccia: avanza solo a torneo in corso, in pausa scintilla e faville si fermano.
+    val t = rememberPausableClock(vm.running && !vm.finished)
     Box(
         Modifier
             .width(1100.dp)
             .height(10.dp)
-            .clip(RoundedCornerShape(5.dp))
-            .background(Color.White.copy(alpha = 0.08f))
-            .drawBehind {
+            // Layer suo: ridisegnare la miccia a ogni frame non ridisegna il resto dello schermo.
+            .graphicsLayer()
+            // Miccia (mock 15): alone, faville e scintilla sul bordo che si consuma, fuori dal clip della barra.
+            .drawWithContent {
+                val f = left.coerceIn(0f, 1f)
+                val ms = t.longValue
+                val fl = 0.85f + 0.15f * sin(ms / 37f) * sin(ms / 91f)
+                val glow = (18f + 8f * fl).dp.toPx()
                 drawRoundRect(
-                    brush = if (lastMinute) Brush.horizontalGradient(listOf(Palette.GoldDark, Palette.Red)) else Palette.BarBrush,
-                    size = size.copy(width = size.width * left.coerceIn(0f, 1f)),
-                    cornerRadius = CornerRadius(size.height / 2),
+                    Palette.Gold.copy(alpha = 0.07f),
+                    Offset(-glow / 2, -glow / 2),
+                    Size(size.width + glow, size.height + glow),
+                    CornerRadius(glow),
+                )
+                drawContent()
+                if (f <= 0f) return@drawWithContent
+                val sx = size.width * f
+                val y0 = size.height / 2
+                val u = 1.dp.toPx()
+                // una favilla ogni 18 ms, vive 0,45-0,9 s: parabola verso l'alto e poi giù
+                var i = ((ms - 900) / 18).coerceAtLeast(0)
+                while (i <= ms / 18) {
+                    val age = (ms - i * 18) / 1000f
+                    val life = 0.45f + 0.45f * rnd(i)
+                    if (age in 0f..life) {
+                        val a = -PI.toFloat() * (0.15f + 0.7f * rnd(i + 7))
+                        val v = 160f + 260f * rnd(i + 3)
+                        val x = sx + (cos(a) * v * age * 0.9f + 30f * age) * u
+                        val y = y0 + (sin(a) * v * age + 520f * age * age) * u
+                        val k = 1f - age / life
+                        drawCircle(Color(1f, (190f + 60f * k) / 255f, (90f + 120f * k) / 255f, k), (1.5f + 2.5f * k) * u, Offset(x, y))
+                    }
+                    i++
+                }
+                drawCircle(
+                    Brush.radialGradient(
+                        0f to Color.White,
+                        0.22f to Color(0xFFFFF3C4),
+                        0.4f to Palette.GoldLight.copy(alpha = 0.8f),
+                        0.7f to Palette.Gold.copy(alpha = 0f),
+                        center = Offset(sx, y0),
+                        radius = 17.dp.toPx() * fl * 1.15f,
+                    ),
+                    17.dp.toPx() * fl * 1.15f,
+                    Offset(sx, y0),
                 )
             },
-    )
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(5.dp))
+                .background(Color.White.copy(alpha = 0.08f))
+                .drawBehind {
+                    drawRoundRect(
+                        brush = if (lastMinute) Brush.horizontalGradient(listOf(Palette.GoldDark, Palette.Red)) else Palette.BarBrush,
+                        size = size.copy(width = size.width * left.coerceIn(0f, 1f)),
+                        cornerRadius = CornerRadius(size.height / 2),
+                    )
+                },
+        )
+    }
+}
+
+/** Numero pseudo-casuale fisso in [0, 1) per la favilla [i] (stesso del mock). */
+private fun rnd(i: Long): Float {
+    val x = sin(i * 127.1 + 311.7) * 43758.5453
+    return (x - floor(x)).toFloat()
+}
+
+/** Millisecondi che avanzano a ogni frame solo mentre [running] è vero. */
+@Composable
+private fun rememberPausableClock(running: Boolean): MutableLongState {
+    val t = remember { mutableLongStateOf(0L) }
+    LaunchedEffect(running) {
+        if (!running) return@LaunchedEffect
+        var last = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { now ->
+                t.longValue += (now - last) / 1_000_000
+                last = now - (now - last) % 1_000_000
+            }
+        }
+    }
+    return t
 }
 
 @Composable

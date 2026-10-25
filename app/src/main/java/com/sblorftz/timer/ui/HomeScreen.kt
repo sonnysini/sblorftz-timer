@@ -81,6 +81,7 @@ fun HomeScreen(
     LaunchedEffect(Unit) { HomeIntro.played = true }
     val t = { introTime.value.toFloat() }
     val v2 = remember { V2Anchor() }
+    val glide = rememberGlide()
     val shake = Modifier.graphicsLayer { v2Shake(t()).let { translationX = it.x; translationY = it.y } }
 
     TableBackground {
@@ -119,21 +120,23 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 fun rise(i: Int) = Modifier.graphicsLayer {
-                    compositingStrategy = CompositingStrategy.Offscreen
+                    // Offscreen solo durante l'entrata: dopo taglierebbe la pillola che scivola da un bottone all'altro.
+                    compositingStrategy = if (t() < 4700f + i * 120) CompositingStrategy.Offscreen else CompositingStrategy.Auto
                     val a = phase(t(), 4200f + i * 120, 4700f + i * 120, EaseOutCubic)
                     alpha = a
                     translationY = 50f * (1f - a)
                 }
                 if (vm.hasSavedSession) {
-                    GoldButton("Riprendi torneo", onResume, rise(0).focusRequester(first))
-                    GoldButton("Nuovo torneo", { confirmNew = true }, rise(1))
+                    GoldButton("Riprendi torneo", onResume, rise(0).focusRequester(first), glide = glide)
+                    GoldButton("Nuovo torneo", { confirmNew = true }, rise(1), glide = glide)
                 } else {
                     GoldButton(
                         "Avvia torneo", onNew, rise(0).focusRequester(first),
                         subtitle = "${vm.structure.blindLevelCount()} livelli · ${formatDuration(vm.structure.sumOf { it.durationMs })}",
+                        glide = glide,
                     )
                 }
-                GoldButton("Struttura", onStructure, rise(2))
+                GoldButton("Struttura", onStructure, rise(2), glide = glide)
             }
         }
         V2Impact(t, v2)
