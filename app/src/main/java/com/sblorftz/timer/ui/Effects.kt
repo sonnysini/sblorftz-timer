@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.ui.draw.alpha
@@ -662,7 +663,7 @@ fun IntroStopwatch(time: () -> Float, anchor: V2Anchor, modifier: Modifier = Mod
  * tocca solo translationY/alpha dei layer: niente ricomposizione né relayout del testo gigante.
  */
 @Composable
-fun RollingDigit(digit: Char, delayMs: Int, style: TextStyle, windowHeight: Dp, red: () -> Float) {
+fun RollingDigit(digit: Char, delayMs: Int, style: TextStyle, width: Dp, windowHeight: Dp, red: () -> Float) {
     var shown by remember { mutableStateOf(digit) }
     var old by remember { mutableStateOf<Char?>(null) }
     val p = remember { Animatable(1f) }
@@ -677,18 +678,20 @@ fun RollingDigit(digit: Char, delayMs: Int, style: TextStyle, windowHeight: Dp, 
     }
     // Il box del testo è più alto delle cifre: si taglia a una finestra alta [windowHeight] al centro,
     // così la cifra che scende sparisce prima della barra e non ci passa sopra.
+    // Larghezza fissa e cifra centrata: l'orologio non si allarga/stringe (né si ricentra) a ogni secondo.
     Box(
-        Modifier.drawWithContent {
+        Modifier.width(width).drawWithContent {
             val wh = windowHeight.toPx()
             clipRect(top = (size.height - wh) / 2, bottom = (size.height + wh) / 2) { this@drawWithContent.drawContent() }
         },
     ) {
         @Composable
         fun Layer(c: Char, layer: GraphicsLayerScope.(h: Float) -> Unit) = Box(
-            Modifier.graphicsLayer {
+            Modifier.fillMaxWidth().graphicsLayer {
                 compositingStrategy = CompositingStrategy.Offscreen
                 layer(windowHeight.toPx())
             },
+            contentAlignment = Alignment.Center,
         ) {
             Text("$c", style = style.copy(brush = Palette.ClockBrush), modifier = Modifier.graphicsLayer { alpha = 1f - red() })
             Text("$c", style = style.copy(brush = alertClockBrush(1f)), modifier = Modifier.graphicsLayer { alpha = red() })
