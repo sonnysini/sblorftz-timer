@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta18
+
+- Cambio fiches: in pausa si fermano anche le animazioni delle fiches
+- Tic-tac più morbido, senza lo schiocco sugli alti
+- Negli ultimi 10 s il tic-tac lascia il posto al battito
+
 ## 2.0-beta17
 
 - Cambio fiches: tic-tac a ogni secondo con un ronzio basso sotto

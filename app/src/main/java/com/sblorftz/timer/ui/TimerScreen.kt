@@ -38,7 +38,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -447,15 +449,26 @@ private val SqueezeEasing = CubicBezierEasing(0.42f, 0f, 1f, 1f)
  * la pila si schiaccia con un lampo dorato e ne esce la viola da 500 (mock fiches-anim.html).
  * Negli ultimi 10 s le 100 si fermano e resta la 500 che gira su se stessa.
  */
+/** Va da 0 a 1 ogni [periodMs] e resta ferma dov'è quando [running] è falso (pausa). */
+@Composable
+private fun rememberPausableLoop(periodMs: Int, running: Boolean): State<Float> {
+    val p = remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(running) {
+        if (!running) return@LaunchedEffect
+        var last = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { now ->
+                p.floatValue = (p.floatValue + (now - last) / 1_000_000f / periodMs) % 1f
+                last = now
+            }
+        }
+    }
+    return p
+}
+
 @Composable
 private fun ChipMerge(vm: TournamentViewModel) {
-    val transition = rememberInfiniteTransition(label = "chipMerge")
-    val p by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(4_000, easing = LinearEasing), RepeatMode.Restart),
-        label = "p",
-    )
+    val p by rememberPausableLoop(4_000, vm.running)
     val finale by remember { derivedStateOf { vm.chipFinale } }
     // Rumore delle fiches quando la pila si forma (80 ms prima, per il ritardo HDMI).
     LaunchedEffect(Unit) {
@@ -466,12 +479,7 @@ private fun ChipMerge(vm: TournamentViewModel) {
         }
     }
     if (finale) {
-        val turn by transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(1_000, easing = LinearEasing), RepeatMode.Restart),
-            label = "spin",
-        )
+        val turn by rememberPausableLoop(1_000, vm.running)
         Box(Modifier.width(900.dp).height(180.dp), contentAlignment = Alignment.Center) {
             Chip(
                 "500",
