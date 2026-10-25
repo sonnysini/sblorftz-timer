@@ -19,7 +19,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,11 +67,21 @@ private const val MINUTES_WIDTH = 412
 
 private enum class Field { Blinds, Minutes }
 
+/** Scorre quanto lo scorrimento normale, ma in 150 ms come il riquadro: lista e focus arrivano insieme. */
+@OptIn(ExperimentalFoundationApi::class)
+private class QuickScroll(private val base: BringIntoViewSpec) : BringIntoViewSpec {
+    @Suppress("OVERRIDE_DEPRECATION")
+    override val scrollAnimationSpec: AnimationSpec<Float> = tween(150, easing = FastOutSlowInEasing)
+    override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float): Float =
+        base.calculateScrollDistance(offset, size, containerSize)
+}
+
 private sealed interface EditorDialog {
     data class Menu(val index: Int) : EditorDialog
     data object Restore : EditorDialog
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     var editing by remember { mutableStateOf<Pair<Int, Field>?>(null) }
@@ -72,6 +89,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     var focusRow by remember { mutableStateOf<Int?>(0) }
     val listState = rememberLazyListState()
     val structure = vm.structure
+    val glide = rememberGlide()
 
     // La struttura si salva a ogni modifica: Indietro è l'unico modo di uscire.
     BackHandler {
@@ -140,6 +158,9 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
             }
             Spacer(Modifier.height(12.dp))
 
+            val defaultScroll = LocalBringIntoViewSpec.current
+            val quickScroll = remember(defaultScroll) { QuickScroll(defaultScroll) }
+            CompositionLocalProvider(LocalBringIntoViewSpec provides quickScroll) {
             LazyColumn(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -155,6 +176,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                         }
                     }
                     LevelRow(
+                        glide = glide,
                         level = level,
                         number = if (level.isChipChange) null else structure.displayNumber(index),
                         current = vm.hasSavedSession && vm.levelIndex == index,
@@ -168,7 +190,8 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                         },
                     )
                 }
-                item(key = "add") { AddRow(::append) }
+                item(key = "add") { AddRow(glide, ::append) }
+            }
             }
 
             Spacer(Modifier.height(20.dp))
@@ -226,6 +249,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
 
 @Composable
 private fun LevelRow(
+    glide: Glide,
     level: Level,
     number: Int?,
     current: Boolean,
@@ -257,6 +281,7 @@ private fun LevelRow(
 
         if (level.isChipChange) {
             Cell(
+                glide = glide,
                 text = "CAMBIO FICHES",
                 width = BLINDS_WIDTH,
                 editing = false,
@@ -266,6 +291,7 @@ private fun LevelRow(
             )
         } else {
             Cell(
+                glide = glide,
                 text = "${formatChips(level.smallBlind)} / ${formatChips(level.bigBlind)}",
                 width = BLINDS_WIDTH,
                 editing = editing == Field.Blinds,
@@ -280,6 +306,7 @@ private fun LevelRow(
         }
         Spacer(Modifier.width(40.dp))
         Cell(
+            glide = glide,
             text = "${level.minutes} min",
             width = MINUTES_WIDTH,
             editing = editing == Field.Minutes,
@@ -293,7 +320,7 @@ private fun LevelRow(
 
 /** Ultima riga della tabella, tratteggiata: OK aggiunge un livello in fondo. */
 @Composable
-private fun AddRow(onClick: () -> Unit) {
+private fun AddRow(glide: Glide, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     var focused by remember { mutableStateOf(false) }
     Surface(
@@ -302,6 +329,7 @@ private fun AddRow(onClick: () -> Unit) {
             .padding(start = (24 + 260).dp)
             .width((BLINDS_WIDTH + 40 + MINUTES_WIDTH).dp)
             .onFocusChanged { focused = it.isFocused }
+            .glide(glide, fill = 0.22f)
             // Col focus c'è già il bordo oro pieno: il tratteggio sparisce.
             .drawBehind {
                 if (!focused) drawRoundRect(
@@ -314,13 +342,11 @@ private fun AddRow(onClick: () -> Unit) {
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.Transparent,
             contentColor = Palette.Gold.copy(alpha = 0.8f),
-            focusedContainerColor = Palette.Gold.copy(alpha = 0.22f),
+            // Fondo e bordo del focus li disegna il riquadro che scivola (glide).
+            focusedContainerColor = Color.Transparent,
             focusedContentColor = Palette.Cream,
         ),
-        border = ClickableSurfaceDefaults.border(
-            focusedBorder = Border(BorderStroke(3.dp, Palette.Gold), shape = shape),
-        ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.02f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
         Box(Modifier.fillMaxWidth().padding(vertical = 22.dp), contentAlignment = Alignment.Center) {
             Text("+  AGGIUNGI LIVELLO", style = label(24, LocalContentColor.current, 0.3f, FontWeight.Bold))
@@ -334,6 +360,7 @@ private fun AddRow(onClick: () -> Unit) {
  */
 @Composable
 private fun Cell(
+    glide: Glide,
     text: String,
     width: Int,
     editing: Boolean,
@@ -348,6 +375,7 @@ private fun Cell(
         onClick = onClick,
         modifier = modifier
             .width(width.dp)
+            .glide(glide, fill = if (editing) 0f else 0.22f)
             .onPreviewKeyEvent { e ->
                 if (!editing || onStep == null) return@onPreviewKeyEvent false
                 when (e.nativeKeyEvent.keyCode) {
@@ -363,14 +391,15 @@ private fun Cell(
         colors = ClickableSurfaceDefaults.colors(
             containerColor = if (editing) accent else Color.White.copy(alpha = 0.04f),
             contentColor = if (editing) Palette.FeltDark else if (warm) Palette.GoldLight else Palette.Cream,
-            focusedContainerColor = if (editing) accent else accent.copy(alpha = 0.22f),
+            // Fondo e bordo del focus li disegna il riquadro che scivola (glide).
+            focusedContainerColor = if (editing) accent else Color.White.copy(alpha = 0.04f),
             focusedContentColor = if (editing) Palette.FeltDark else Palette.Cream,
         ),
         border = ClickableSurfaceDefaults.border(
             border = Border(BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)), shape = shape),
-            focusedBorder = Border(BorderStroke(3.dp, accent), shape = shape),
+            focusedBorder = Border(BorderStroke(1.dp, Color.White.copy(alpha = 0.06f)), shape = shape),
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.03f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1f),
     ) {
         Box(
             Modifier

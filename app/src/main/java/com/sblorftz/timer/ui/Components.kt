@@ -17,7 +17,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -112,16 +116,19 @@ fun GoldButton(
     danger: Boolean = false,
     width: Int? = 560,
     compact: Boolean = false,
+    glide: Glide? = null,
 ) {
     val accent = if (danger) Palette.Red else Palette.Gold
     Surface(
         onClick = onClick,
-        modifier = if (width != null) modifier.width(width.dp) else modifier,
+        modifier = (if (width != null) modifier.width(width.dp) else modifier)
+            .then(if (glide != null) Modifier.glide(glide, accent, fill = 1f, border = 0.dp, radius = 14.dp) else Modifier),
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.White.copy(alpha = 0.03f),
             contentColor = Palette.Cream,
-            focusedContainerColor = accent,
+            // Con glide la pillola oro la disegna il riquadro che scivola.
+            focusedContainerColor = if (glide != null) Color.Transparent else accent,
             focusedContentColor = Palette.FeltDark,
             pressedContainerColor = accent,
             pressedContentColor = Palette.FeltDark,
@@ -130,7 +137,7 @@ fun GoldButton(
             border = Border(BorderStroke(2.dp, accent.copy(alpha = 0.35f)), shape = RoundedCornerShape(14.dp)),
             focusedBorder = Border(BorderStroke(2.dp, accent), shape = RoundedCornerShape(14.dp)),
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = if (glide != null) 1f else 1.06f),
     ) {
         Column(
             Modifier
@@ -169,9 +176,14 @@ fun Overlay(
 ) {
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    val glide = rememberGlide()
+    // Entrata: dissolvenza in 150 ms, niente rimbalzi.
+    val shown = remember { Animatable(0f) }
+    LaunchedEffect(Unit) { shown.animateTo(1f, tween(150, easing = FastOutSlowInEasing)) }
     Box(
         Modifier
             .fillMaxSize()
+            .graphicsLayer { alpha = shown.value }
             .background(Color.Black.copy(alpha = 0.72f))
             // Le frecce restano dentro il popup: senza, il focus finiva sui bottoni nascosti sotto.
             .focusProperties { exit = { FocusRequester.Cancel } }
@@ -202,6 +214,7 @@ fun Overlay(
                             modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
                             danger = a.danger,
                             width = buttonWidth,
+                            glide = glide,
                         )
                     }
                 }
@@ -213,6 +226,7 @@ fun Overlay(
                             modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
                             danger = a.danger,
                             width = 300,
+                            glide = glide,
                         )
                     }
                 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta20
+
+- Riquadro di selezione che scivola da una casella all'altra in Struttura e nei menu
+- La lista scorre insieme al riquadro, anche tenendo premuto
+- I popup compaiono con una dissolvenza
+
 ## 2.0-beta19
 
 - In pausa una pila di fiches che rallenta fino a fermarsi
