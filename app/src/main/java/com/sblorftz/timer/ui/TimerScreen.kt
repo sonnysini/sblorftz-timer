@@ -38,7 +38,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -63,8 +62,6 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
@@ -339,28 +336,10 @@ private fun Clock(vm: TournamentViewModel, fx: Fx) {
                 alpha = 1f - 0.65f * fx.dim
             },
     ) {
-        // cifre a rulli: a ogni secondo scende la cifra che cambia (unità per prima, le altre a cascata);
         // due strati (bianco e rosso) incrociati in alpha: niente relayout del testo a ogni frame
-        val style = tight(Display, 420.sp, FontWeight.Black).copy(fontFeatureSettings = "tnum")
-        // casella di ogni cifra larga quanto la cifra più larga del font
-        val measurer = rememberTextMeasurer()
-        val density = LocalDensity.current
-        val digitWidth = remember(style, density) {
-            with(density) { ('0'..'9').maxOf { measurer.measure("$it", style).size.width }.toDp() }
-        }
-        Row {
-            text.forEachIndexed { i, c ->
-                if (c.isDigit()) {
-                    val rank = text.substring(i + 1).count { it.isDigit() }
-                    key(text.length - i) { RollingDigit(c, delayMs = rank * 60, style = style, width = digitWidth, windowHeight = (CLOCK_HEIGHT + 16).dp, red = { fx.red }) }
-                } else {
-                    Box {
-                        Text("$c", style = style.copy(brush = Palette.ClockBrush), modifier = Modifier.graphicsLayer { alpha = 1f - fx.red })
-                        Text("$c", style = style.copy(brush = alertClockBrush(1f)), modifier = Modifier.graphicsLayer { alpha = fx.red })
-                    }
-                }
-            }
-        }
+        val style = tight(Display, 420.sp, FontWeight.Black)
+        Text(text, style = style.copy(brush = Palette.ClockBrush), modifier = Modifier.graphicsLayer { alpha = 1f - fx.red })
+        Text(text, style = style.copy(brush = alertClockBrush(1f)), modifier = Modifier.graphicsLayer { alpha = fx.red })
     }
 }
 

@@ -2,8 +2,7 @@
 
 ## 2.0-beta13
 
-- Tolte le animazioni di Struttura e popup della beta 12: restano solo i secondi a rulli
-- I secondi a rulli non passano più sopra la barra
+- Tolte le animazioni della beta 12: orologio, Struttura e popup tornano come nella beta 11
 
 ## 2.0-beta12
 
