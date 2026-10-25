@@ -59,6 +59,12 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
     var finishedAt by mutableLongStateOf(0L)
         private set
 
+    /** Istante in cui parte la scia dorata del cambio livello; 0 = nessuna. */
+    var sweepAt by mutableLongStateOf(0L)
+        private set
+    /** Il boom di fine livello è già partito in anticipo. */
+    private var soundLed = false
+
     private var lastTick = 0L
     private var lastSavedSecond = -1L
 
@@ -83,7 +89,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         if (hasSavedSession) resumeSavedTournament()
         viewModelScope.launch {
             while (isActive) {
-                delay(100)
+                delay(nextTickMs())
                 tick()
             }
         }
@@ -102,23 +108,41 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
 
         if (before > 60_000 && after <= 60_000) sounds.oneMinute()
         if (before > 10_000 && after <= 10_000) sounds.tenSeconds()
+        val last = levelIndex == structure.lastIndex
+        // Il boom parte in anticipo così il colpo cade sul cambio; la scia passa il centro sul cambio.
+        if (before > SOUND_LEAD_MS && after <= SOUND_LEAD_MS) {
+            soundLed = true
+            if (last) sounds.levelEnd() else sounds.levelChange()
+        }
+        if (before > SWEEP_LEAD_MS && after <= SWEEP_LEAD_MS) sweepAt = now
 
         if (after == 0L) {
-            if (levelIndex < structure.lastIndex) {
+            if (!soundLed) {
+                if (last) sounds.levelEnd(now = true) else sounds.levelChange(now = true)
+                sweepAt = now
+            }
+            soundLed = false
+            if (!last) {
                 markLevelChange()
                 levelIndex++
                 remainingMs = level.durationMs
-                sounds.levelChange()
             } else {
                 running = false
                 finished = true
                 finishedAt = now
-                sounds.levelChange()
             }
             save()
         } else if (after / 1000 != lastSavedSecond) {
             save()
         }
+    }
+
+    /** Tick ogni 100 ms, ma si sveglia giusto in tempo per boom, scia e cambio livello. */
+    private fun nextTickMs(): Long {
+        if (!running) return 100
+        val r = remainingMs
+        val next = listOf(r - SOUND_LEAD_MS, r - SWEEP_LEAD_MS, r).filter { it > 0 }.minOrNull() ?: 1
+        return next.coerceIn(1, 100)
     }
 
     fun startNewTournament() {
@@ -170,14 +194,16 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
     fun adjustMinute(up: Boolean) {
         val step = if (up) 60_000 else -60_000
         remainingMs = (remainingMs + step).coerceIn(1_000, level.durationMs)
+        soundLed = false
         finished = false
         save()
     }
 
     fun resetLevel() {
         remainingMs = level.durationMs
+        soundLed = false
         finished = false
-        sounds.levelChange()
+        sounds.levelEnd(now = true)
         save()
     }
 
@@ -238,14 +264,17 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
             levelIndex = target
             remainingMs = level.durationMs
         }
+        soundLed = false
         finished = false
-        sounds.levelChange()
+        sounds.levelChange(now = true)
         save()
     }
 
     private fun markLevelChange() {
         previousLevel = level
         levelChangedAt = SystemClock.elapsedRealtime()
+        // Cambio a mano (o scia non partita): la scia parte adesso.
+        if (sweepAt < levelChangedAt - 1_000) sweepAt = levelChangedAt
     }
 
     fun updateStructure(levels: List<Level>) {
@@ -289,5 +318,9 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val HOLD_MS = 1_000L
+        /** Rincorsa del boom (500 ms) + ritardo audio HDMI (~80 ms, come per l'intro). */
+        const val SOUND_LEAD_MS = 580L
+        /** Metà della corsa della scia (950 ms, vedi SweepFlash): così passa il centro sul cambio. */
+        const val SWEEP_LEAD_MS = 475L
     }
 }

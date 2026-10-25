@@ -159,6 +159,7 @@ fun TimerScreen(
             PauseBadge(vm)
             HintOrHold(vm)
             LevelChangeFlash { fx.change }
+            SweepFlash { fx.sweep }
             if (vm.finished) {
                 FinishOverlay(vm.finishedAt, "${formatDuration(vm.playedMs)} di gioco · ${vm.structure.blindLevelCount()} livelli")
                 TopBar(vm)
@@ -262,7 +263,7 @@ private fun MetaText(before: String, bold: String, after: String) {
 
 /**
  * Stati delle animazioni del timer. [red] 0..1 entra a 00:10, [beat] 1→0 a ogni secondo,
- * [dim] 1 in pausa, [change] 0..1 nei 1,2 s dopo un cambio livello.
+ * [dim] 1 in pausa, [change] 0..1 nei 1,2 s dopo un cambio livello, [sweep] 0..1 nei 950 ms della scia.
  */
 @Stable
 private class Fx(
@@ -270,11 +271,13 @@ private class Fx(
     private val beatAnim: Animatable<Float, AnimationVector1D>,
     private val dimState: State<Float>,
     private val changeState: State<Float>,
+    private val sweepState: State<Float>,
 ) {
     val red get() = redState.value
     val beat get() = beatAnim.value
     val dim get() = dimState.value
     val change get() = changeState.value
+    val sweep get() = sweepState.value
 }
 
 @Composable
@@ -297,7 +300,8 @@ private fun rememberFx(vm: TournamentViewModel): Fx {
         label = "dim",
     )
     val change = rememberSince(vm.levelChangedAt, 1_200)
-    return remember(red, beat, dim, change) { Fx(red, beat, dim, change) }
+    val sweep = rememberSince(vm.sweepAt, 950)
+    return remember(red, beat, dim, change, sweep) { Fx(red, beat, dim, change, sweep) }
 }
 
 @Composable

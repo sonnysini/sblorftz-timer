@@ -113,7 +113,7 @@ fun rememberFrameTime(untilMs: Long = Long.MAX_VALUE): State<Long> = produceStat
 
 // ---------------------------------------------------------------- cambio livello
 
-/** Flash bianco + scia dorata obliqua che attraversa lo schermo (p = 0..1 su 1,2 s). */
+/** Flash bianco sul cambio livello (p = 0..1 su 1,2 s). */
 @Composable
 fun LevelChangeFlash(progress: () -> Float) {
     Canvas(Modifier.fillMaxSize()) {
@@ -121,9 +121,21 @@ fun LevelChangeFlash(progress: () -> Float) {
         if (p >= 1f) return@Canvas
         val flash = 0.45f * phase(p, 0f, 0.05f) * (1f - phase(p, 0.05f, 0.5f, EaseOutCubic))
         if (flash > 0f) drawRect(Color.White.copy(alpha = flash))
-        val sweepAlpha = phase(p, 0f, 0.12f) * (1f - phase(p, 0.62f, 0.75f))
+    }
+}
+
+/**
+ * Scia dorata obliqua da sinistra a destra (p = 0..1 su 950 ms). Parte insieme alla rincorsa
+ * del boom e passa il centro dello schermo a metà corsa, cioè sul cambio livello.
+ */
+@Composable
+fun SweepFlash(progress: () -> Float) {
+    Canvas(Modifier.fillMaxSize()) {
+        val p = progress()
+        if (p >= 1f) return@Canvas
+        val sweepAlpha = phase(p, 0f, 0.16f) * (1f - phase(p, 0.84f, 1f))
         if (sweepAlpha <= 0f) return@Canvas
-        val x = -700f + 2800f * phase(p, 0f, 0.75f, CubicBezierEasing(0.65f, 0f, 0.35f, 1f))
+        val x = -700f + 2800f * phase(p, 0f, 1f, CubicBezierEasing(0.65f, 0f, 0.35f, 1f))
         val w = 520f
         rotate(18f, pivot = Offset(x + w / 2, size.height / 2)) {
             drawRect(

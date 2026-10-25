@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta15
+
+- Cambio buio: al posto del vecchio suono arriva il boom dell'intro con la voce "cambio buio", con il colpo che cade proprio sul cambio
+- La scia dorata parte insieme alla rincorsa e attraversa lo schermo sul cambio livello
+- Fine torneo e "Ricomincia livello": il boom senza voce
+
 ## 2.0-beta14
 
 - Intro della home con il suono: carte, lettere, fiche, cronometro e il botto del 2, sincronizzati con l'animazione, più la voce "Sblorftz Timer… due!"
