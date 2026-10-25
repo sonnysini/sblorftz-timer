@@ -75,13 +75,18 @@ private const val ENTER_MS = 1300
 private const val EXIT_MS = 900
 private const val EXIT_END = 150f
 
-/** Riga i-esima dell'entrata a cascata: solo graphicsLayer, nessuna ricomposizione per frame. */
-private fun Modifier.enterRow(enter: Animatable<Float, *>, index: Int) = graphicsLayer {
-    val start = 150f + index.coerceAtMost(10) * 55f
-    val p = phase(enter.value, start, start + 550f, EaseOutCubic)
+/**
+ * Riga i-esima dell'entrata a cascata: solo graphicsLayer, nessuna ricomposizione per frame.
+ * Il ritardo conta dalla prima riga in vista, così in uscita partono subito le righe visibili.
+ */
+private fun Modifier.enterRow(enter: Animatable<Float, *>, index: Int, first: () -> Int) = graphicsLayer {
+    val p = phase(enter.value, rowStart(index - first()), rowStart(index - first()) + ROW_MS, EaseOutCubic)
     alpha = p
     translationX = (1f - p) * 120.dp.toPx()
 }
+
+private fun rowStart(rank: Int) = 150f + rank.coerceIn(0, 10) * 55f
+private const val ROW_MS = 550f
 
 /** Scorre quanto lo scorrimento normale, ma in 150 ms come il riquadro: lista e focus arrivano insieme. */
 @OptIn(ExperimentalFoundationApi::class)
@@ -114,7 +119,11 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
     var exiting by remember { mutableStateOf(false) }
     LaunchedEffect(exiting) {
         if (!exiting) return@LaunchedEffect
-        val from = enter.value.coerceAtLeast(EXIT_END)
+        // Si parte da quando l'ultima riga in vista ha finito di entrare: niente attesa a vuoto.
+        val visible = listState.layoutInfo.visibleItemsInfo
+        val lastRank = (visible.lastOrNull()?.index ?: 0) - listState.firstVisibleItemIndex
+        val from = enter.value.coerceAtMost(rowStart(lastRank) + ROW_MS).coerceAtLeast(EXIT_END)
+        enter.snapTo(from)
         val ms = ((from - EXIT_END) / (ENTER_MS - EXIT_END) * EXIT_MS).toInt()
         enter.animateTo(EXIT_END, tween(ms, easing = LinearEasing))
         onDone()
@@ -205,7 +214,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                             focusRow = -1
                         }
                     }
-                    Box(Modifier.enterRow(enter, index)) {
+                    Box(Modifier.enterRow(enter, index) { listState.firstVisibleItemIndex }) {
                     LevelRow(
                         glide = glide,
                         level = level,
@@ -222,7 +231,7 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                     )
                     }
                 }
-                item(key = "add") { Box(Modifier.enterRow(enter, structure.size)) { AddRow(glide, ::append) } }
+                item(key = "add") { Box(Modifier.enterRow(enter, structure.size) { listState.firstVisibleItemIndex }) { AddRow(glide, ::append) } }
             }
             }
 
