@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta16
+
+- A un minuto dalla pausa la voce dice "tra un minuto, cambio fiches"
+- Quando scatta la pausa, il boom dice "cambio fiches"
+- Annunci vocali a pezzi, pronti per dire anche i bui del nuovo livello
+
 ## 2.0-beta15
 
 - Cambio buio: al posto del vecchio suono arriva il boom dell'intro con la voce "cambio buio", con il colpo che cade proprio sul cambio
