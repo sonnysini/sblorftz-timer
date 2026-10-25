@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0-beta10
+
+- Struttura: "+ Aggiungi livello" ora aggiunge un livello a ogni OK (prima dal secondo in poi non faceva nulla)
+- Struttura: ☰ → Aggiungi livello / cambio fiches lo inserisce al posto del livello scelto (sopra), non sotto
+- Struttura: dopo "Ripristina predefinito" il cursore torna sul livello 1
+- Timer: suggerimenti per ◀ ▶ e ▲ ▼ sempre visibili, anche col tempo che scorre
+
 ## 2.0-beta9
 
 - Battito del cuore udibile fino alla fine dei 10 secondi

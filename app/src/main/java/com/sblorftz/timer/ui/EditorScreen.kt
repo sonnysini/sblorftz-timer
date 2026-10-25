@@ -83,21 +83,32 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
         }
     }
 
+    // Sempre vm.structure, mai la `structure` catturata: la riga "add" (key fissa) può tenersi
+    // la lambda della composizione precedente e riaggiungere alla lista vecchia (2° OK a vuoto).
     fun update(index: Int, level: Level) {
-        vm.updateStructure(structure.toMutableList().also { it[index] = level })
+        vm.updateStructure(vm.structure.toMutableList().also { it[index] = level })
     }
 
     fun append() {
-        val last = structure.lastOrNull { !it.isChipChange }
-        vm.updateStructure(structure + Level.blinds((last?.smallBlind ?: 50) * 2, last?.minutes ?: 15))
+        val current = vm.structure
+        val last = current.lastOrNull { !it.isChipChange }
+        vm.updateStructure(current + Level.blinds((last?.smallBlind ?: 50) * 2, last?.minutes ?: 15))
         focusRow = null
     }
 
-    fun insertBelow(index: Int, level: Level) {
-        vm.updateStructure(structure.toMutableList().also { it.add(index + 1, level) })
+    // Inserisce al posto della riga scelta: quella e le successive scendono di uno.
+    fun insertAt(index: Int, level: Level) {
+        vm.updateStructure(vm.structure.toMutableList().also { it.add(index, level) })
         dialog = null
         editing = null
-        focusRow = index + 1
+        focusRow = index
+    }
+
+    // La riga da mettere a fuoco deve essere composta: se è fuori schermo (es. riga 1 dopo
+    // "Ripristina"), prima ci si scorre, poi il suo LaunchedEffect prende il focus.
+    LaunchedEffect(focusRow) {
+        val row = focusRow ?: return@LaunchedEffect
+        if (row >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == row }) listState.scrollToItem(row)
     }
 
     // Dopo "+ Aggiungi livello" la riga nuova resta in vista, col focus sulla riga tratteggiata.
@@ -179,11 +190,13 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
                     buttonWidth = 680,
                     actions = listOfNotNull(
                         DialogAction("Aggiungi livello") {
-                            val base = structure.subList(0, d.index + 1).lastOrNull { !it.isChipChange }
-                            val sb = base?.let { it.smallBlind + blindStep(it.smallBlind, true) } ?: 100
-                            insertBelow(d.index, Level.blinds(sb, base?.minutes ?: 15))
+                            // Buio = livello precedente + uno scatto; sul primo, uno scatto sotto.
+                            val prev = structure.subList(0, d.index).lastOrNull { !it.isChipChange }
+                            val sb = prev?.let { it.smallBlind + blindStep(it.smallBlind, true) }
+                                ?: (level.smallBlind - blindStep(level.smallBlind, false)).coerceAtLeast(100)
+                            insertAt(d.index, Level.blinds(sb, if (level.isChipChange) prev?.minutes ?: 15 else level.minutes))
                         },
-                        DialogAction("Aggiungi cambio fiches") { insertBelow(d.index, Level.chipChange()) },
+                        DialogAction("Aggiungi cambio fiches") { insertAt(d.index, Level.chipChange()) },
                         if (structure.size > 1) DialogAction("Elimina livello", danger = true) { dialog = EditorDialog.Delete(d.index) } else null,
                         DialogAction("Ripristina predefinito") { dialog = EditorDialog.Restore },
                     ),
