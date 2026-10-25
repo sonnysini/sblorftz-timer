@@ -344,7 +344,7 @@ private fun Clock(vm: TournamentViewModel, fx: Fx) {
             text.forEachIndexed { i, c ->
                 if (c.isDigit()) {
                     val rank = text.substring(i + 1).count { it.isDigit() }
-                    key(text.length - i) { RollingDigit(c, delayMs = rank * 60, style = style, red = { fx.red }) }
+                    key(text.length - i) { RollingDigit(c, delayMs = rank * 60, style = style, windowHeight = (CLOCK_HEIGHT + 16).dp, red = { fx.red }) }
                 } else {
                     Box {
                         Text("$c", style = style.copy(brush = Palette.ClockBrush), modifier = Modifier.graphicsLayer { alpha = 1f - fx.red })

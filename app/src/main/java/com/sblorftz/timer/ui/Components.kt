@@ -1,6 +1,5 @@
 package com.sblorftz.timer.ui
 
-import android.os.SystemClock
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,7 +30,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -114,29 +112,25 @@ fun GoldButton(
     danger: Boolean = false,
     width: Int? = 560,
     compact: Boolean = false,
-    highlight: SlidingHighlight? = null,
 ) {
     val accent = if (danger) Palette.Red else Palette.Gold
-    // Con [highlight] il pieno oro non lo disegna il bottone: è la pillola che scivola dietro.
-    val sliding = highlight != null
-    val m = if (highlight != null) modifier.slidingTarget(highlight, accent) else modifier
     Surface(
         onClick = onClick,
-        modifier = if (width != null) m.width(width.dp) else m,
+        modifier = if (width != null) modifier.width(width.dp) else modifier,
         shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(14.dp)),
         colors = ClickableSurfaceDefaults.colors(
             containerColor = Color.White.copy(alpha = 0.03f),
             contentColor = Palette.Cream,
-            focusedContainerColor = if (sliding) Color.Transparent else accent,
+            focusedContainerColor = accent,
             focusedContentColor = Palette.FeltDark,
-            pressedContainerColor = if (sliding) Color.Transparent else accent,
+            pressedContainerColor = accent,
             pressedContentColor = Palette.FeltDark,
         ),
         border = ClickableSurfaceDefaults.border(
             border = Border(BorderStroke(2.dp, accent.copy(alpha = 0.35f)), shape = RoundedCornerShape(14.dp)),
             focusedBorder = Border(BorderStroke(2.dp, accent), shape = RoundedCornerShape(14.dp)),
         ),
-        scale = ClickableSurfaceDefaults.scale(focusedScale = if (sliding) 1f else 1.06f),
+        scale = ClickableSurfaceDefaults.scale(focusedScale = 1.06f),
     ) {
         Column(
             Modifier
@@ -161,8 +155,6 @@ fun GoldButton(
     }
 }
 
-private const val OVERLAY_ENTER_MS = 900
-
 data class DialogAction(val text: String, val danger: Boolean = false, val onClick: () -> Unit)
 
 /** Finestra di conferma sopra lo schermo: il primo bottone prende il focus. */
@@ -177,22 +169,10 @@ fun Overlay(
 ) {
     val first = remember { FocusRequester() }
     LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
-    // Entrata: velo che scurisce, popup che sale con un piccolo rimbalzo, bottoni a cascata,
-    // pillola del focus che scivola tra i bottoni.
-    val openedAt = remember { SystemClock.elapsedRealtime() }
-    val enter = rememberSince(openedAt, OVERLAY_ENTER_MS)
-    val ms = { enter.value * OVERLAY_ENTER_MS }
-    val hl = rememberSlidingHighlight()
-    fun Modifier.cascade(i: Int) = graphicsLayer {
-        val p = phase(ms(), 150f + i * 70, 600f + i * 70, EaseOutCubic)
-        alpha = p
-        translationY = (1f - p) * 24.dp.toPx()
-    }
-    val pill = Modifier.slidingHost(hl, radius = 14f, fill = 1f, border = 0f, alpha = { phase(ms(), 300f, 600f) })
     Box(
         Modifier
             .fillMaxSize()
-            .drawBehind { drawRect(Color.Black.copy(alpha = 0.72f * phase(ms(), 0f, 275f))) }
+            .background(Color.Black.copy(alpha = 0.72f))
             // Le frecce restano dentro il popup: senza, il focus finiva sui bottoni nascosti sotto.
             .focusProperties { exit = { FocusRequester.Cancel } }
             .focusGroup()
@@ -202,14 +182,6 @@ fun Overlay(
     ) {
         Column(
             Modifier
-                .graphicsLayer {
-                    val o = phase(ms(), 0f, 550f)
-                    alpha = (o * 2.5f).coerceAtMost(1f)
-                    translationY = (1f - EaseOutCubic.transform(o)) * 40.dp.toPx()
-                    val sc = 0.9f + 0.1f * backEasing(1.4f).transform(o)
-                    scaleX = sc
-                    scaleY = sc
-                }
                 .background(Palette.FeltDark, RoundedCornerShape(24.dp))
                 .border(1.dp, Palette.Gold.copy(alpha = 0.3f), RoundedCornerShape(24.dp))
                 .padding(horizontal = 72.dp, vertical = 56.dp),
@@ -223,26 +195,24 @@ fun Overlay(
             }
             if (actions.isNotEmpty()) Spacer(Modifier.height(44.dp))
             if (vertical) {
-                Column(pill, verticalArrangement = Arrangement.spacedBy(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(verticalArrangement = Arrangement.spacedBy(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     actions.forEachIndexed { i, a ->
                         GoldButton(
                             a.text, a.onClick,
-                            modifier = (if (i == 0) Modifier.focusRequester(first) else Modifier).cascade(i),
+                            modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
                             danger = a.danger,
                             width = buttonWidth,
-                            highlight = hl,
                         )
                     }
                 }
             } else {
-                Row(pill, horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
                     actions.forEachIndexed { i, a ->
                         GoldButton(
                             a.text, a.onClick,
-                            modifier = (if (i == 0) Modifier.focusRequester(first) else Modifier).cascade(i),
+                            modifier = if (i == 0) Modifier.focusRequester(first) else Modifier,
                             danger = a.danger,
                             width = 300,
-                            highlight = hl,
                         )
                     }
                 }

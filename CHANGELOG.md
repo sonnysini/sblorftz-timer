@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0-beta13
+
+- Tolte le animazioni di Struttura e popup della beta 12: restano solo i secondi a rulli
+- I secondi a rulli non passano più sopra la barra
+
 ## 2.0-beta12
 
 - Timer: i secondi scendono a rulli, le cifre che cambiano a cascata
