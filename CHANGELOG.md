@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta14
+
+- Intro della home con il suono: carte, lettere, fiche, cronometro e il botto del 2, sincronizzati con l'animazione, più la voce "Sblorftz Timer… due!"
+
 ## 2.0-beta13
 
 - Tolte le animazioni della beta 12: orologio, Struttura e popup tornano come nella beta 11
