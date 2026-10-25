@@ -53,11 +53,17 @@ class Sounds(context: Context) {
 
     private val oneMinute = pool.load(context, R.raw.one_minute, 1)
     private val tenSeconds = pool.load(context, R.raw.ten_seconds, 1)
+    // Boom dell'intro (+ voce "cambio buio"). Le versioni normali hanno 500 ms di rincorsa prima
+    // del colpo e partono in anticipo; le "now" partono dal colpo, per i cambi a mano.
     private val levelChange = pool.load(context, R.raw.level_change, 1)
+    private val levelChangeNow = pool.load(context, R.raw.level_change_now, 1)
+    private val levelEnd = pool.load(context, R.raw.level_end, 1)
+    private val levelEndNow = pool.load(context, R.raw.level_end_now, 1)
 
     fun oneMinute() = play(oneMinute)
     fun tenSeconds() = play(tenSeconds)
-    fun levelChange() = play(levelChange)
+    fun levelChange(now: Boolean = false) = play(if (now) levelChangeNow else levelChange)
+    fun levelEnd(now: Boolean = false) = play(if (now) levelEndNow else levelEnd)
 
     private fun play(id: Int) {
         pool.play(id, 1f, 1f, 1, 0, 1f)
