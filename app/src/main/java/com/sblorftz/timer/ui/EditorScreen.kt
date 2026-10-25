@@ -104,6 +104,13 @@ fun EditorScreen(vm: TournamentViewModel, onDone: () -> Unit) {
         focusRow = index
     }
 
+    // La riga da mettere a fuoco deve essere composta: se è fuori schermo (es. riga 1 dopo
+    // "Ripristina"), prima ci si scorre, poi il suo LaunchedEffect prende il focus.
+    LaunchedEffect(focusRow) {
+        val row = focusRow ?: return@LaunchedEffect
+        if (row >= 0 && listState.layoutInfo.visibleItemsInfo.none { it.index == row }) listState.scrollToItem(row)
+    }
+
     // Dopo "+ Aggiungi livello" la riga nuova resta in vista, col focus sulla riga tratteggiata.
     LaunchedEffect(structure.size) {
         if (focusRow == null) listState.animateScrollToItem(structure.size)
