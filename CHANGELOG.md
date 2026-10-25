@@ -2,10 +2,10 @@
 
 ## 2.0-beta20
 
-- Riquadro di selezione che scivola da una casella all'altra in Struttura e nei menu
-- La lista scorre insieme al riquadro, anche tenendo premuto
+- Riquadro di selezione che scivola da una casella all'altra in home, Struttura e menu
+- La lista scorre insieme al riquadro; aprendo la struttura le righe entrano a cascata
+- Barra del tempo a miccia: una scintilla la consuma lanciando faville
 - I popup compaiono con una dissolvenza
-- Aprendo la struttura le righe entrano a cascata
 
 ## 2.0-beta19
 
