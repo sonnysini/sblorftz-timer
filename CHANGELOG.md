@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta17
+
+- Boom del cambio livello con la coda dell'esplosione più lunga (anche cambio fiches, fine torneo e cambi a mano)
+
 ## 2.0-beta16
 
 - A un minuto dalla pausa la voce dice "tra un minuto, cambio fiches"
