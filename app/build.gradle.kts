@@ -15,8 +15,8 @@ android {
         applicationId = "com.sblorftz.timer"
         minSdk = 23
         targetSdk = 35
-        versionCode = 40
-        versionName = "2.0-beta16"
+        versionCode = 41
+        versionName = "2.0-beta17"
     }
 
     signingConfigs {

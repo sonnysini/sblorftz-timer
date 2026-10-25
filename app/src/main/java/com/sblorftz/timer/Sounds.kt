@@ -3,6 +3,7 @@ package com.sblorftz.timer
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaMetadataRetriever
+import android.media.MediaPlayer
 import android.media.SoundPool
 import android.os.Handler
 import android.os.Looper
@@ -13,10 +14,12 @@ import android.os.Looper
  *  - al cambio: boom con dentro "cambio buio" / "cambio fiches", poi piccolo e grande buio.
  * I numeri sono file `vox_n_<valore>` in res/raw (senza silenzio in coda): se un numero
  * manca l'annuncio si ferma lì, senza errori.
+ * Durante il cambio fiches: tic-tac a ogni secondo con un ronzio basso sotto, e il rumore
+ * delle fiches quando la pila si forma nell'animazione.
  */
 class Sounds(private val context: Context) {
     private val pool = SoundPool.Builder()
-        .setMaxStreams(4)
+        .setMaxStreams(6)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 // MEDIA: segue il volume che si regola col telecomando della TV.
@@ -43,13 +46,45 @@ class Sounds(private val context: Context) {
     private val chipChangeNow = clip(R.raw.level_change_fiches_now)
     private val levelEnd = clip(R.raw.level_end)
     private val levelEndNow = clip(R.raw.level_end_now)
+    private val tic = clip(R.raw.tic)
+    private val tac = clip(R.raw.tac)
+    private val piles = listOf(clip(R.raw.fiches_pila_1), clip(R.raw.fiches_pila_2))
+    private var nextPile = 0
     private val numbers = HashMap<Int, Clip?>()
+
+    // Il ronzio dura 20 s in loop: troppo lungo per SoundPool (limite ~1 MB decodificato).
+    private val drone: MediaPlayer? = runCatching {
+        MediaPlayer.create(
+            context,
+            R.raw.ronzio_fiches,
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build(),
+            0,
+        )?.apply { isLooping = true }
+    }.getOrNull()
 
     /** "Tra un minuto" + "cambio buio"/"cambio fiches": i pezzi hanno già la pausa dell'originale. */
     fun oneMinute(toChipChange: Boolean) =
         announce(0, listOf(traUnMinuto, if (toChipChange) cambioFiches else cambioBuio), gapsMs = listOf(0L))
 
     fun tenSeconds() = announce(0, listOf(tenSeconds))
+
+    /** Tic-tac del cambio fiches: si alternano secondo per secondo. */
+    fun secondTick(even: Boolean) = play(if (even) tic else tac)
+
+    /** Le fiche da 100 arrivano in pila: le due prese si alternano. */
+    fun chipPile() {
+        play(piles[nextPile])
+        nextPile = (nextPile + 1) % piles.size
+    }
+
+    /** Ronzio sotto il tic-tac: acceso solo col cambio fiches in corso. */
+    fun drone(on: Boolean) {
+        val d = drone ?: return
+        if (on && !d.isPlaying) d.start() else if (!on && d.isPlaying) d.pause()
+    }
 
     /** Boom + voce del nuovo livello; dopo la voce, i bui (se ci sono i file dei numeri). */
     fun levelChange(to: Level, now: Boolean = false) {
@@ -104,6 +139,7 @@ class Sounds(private val context: Context) {
 
     fun release() {
         cancelQueued()
+        drone?.release()
         pool.release()
     }
 

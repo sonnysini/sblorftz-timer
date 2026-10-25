@@ -42,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -78,6 +79,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.cos
 
 private const val CLOCK_HEIGHT = 380
 
@@ -427,7 +431,7 @@ private fun ChipChangeCenter(vm: TournamentViewModel, fx: Fx) {
             Spacer(Modifier.height(26.dp))
             ProgressBar(vm)
             Spacer(Modifier.height(20.dp))
-            ChipMerge()
+            ChipMerge(vm)
             Spacer(Modifier.height(10.dp))
             Text("LE FICHES DA 100 ESCONO DAL TAVOLO", style = label(24, Palette.Muted2, 0.42f))
         }
@@ -441,15 +445,47 @@ private val SqueezeEasing = CubicBezierEasing(0.42f, 0f, 1f, 1f)
 /**
  * Animazione in loop da 4 s del cambio fiches: le 5 nere da 100 arrivano in pila (sfalsate),
  * la pila si schiaccia con un lampo dorato e ne esce la viola da 500 (mock fiches-anim.html).
+ * Negli ultimi 10 s le 100 si fermano e resta la 500 che gira su se stessa.
  */
 @Composable
-private fun ChipMerge() {
-    val p by rememberInfiniteTransition(label = "chipMerge").animateFloat(
+private fun ChipMerge(vm: TournamentViewModel) {
+    val transition = rememberInfiniteTransition(label = "chipMerge")
+    val p by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(4_000, easing = LinearEasing), RepeatMode.Restart),
         label = "p",
     )
+    val finale by remember { derivedStateOf { vm.chipFinale } }
+    // Rumore delle fiches quando la pila si forma (80 ms prima, per il ritardo HDMI).
+    LaunchedEffect(Unit) {
+        var last = 0f
+        snapshotFlow { p }.collect {
+            if (last < PILE_AT && it >= PILE_AT) vm.onChipPile()
+            last = it
+        }
+    }
+    if (finale) {
+        val turn by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(1_000, easing = LinearEasing), RepeatMode.Restart),
+            label = "spin",
+        )
+        Box(Modifier.width(900.dp).height(180.dp), contentAlignment = Alignment.Center) {
+            Chip(
+                "500",
+                Palette.ChipPurple,
+                Modifier.graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                    // Moneta che gira: si schiaccia in larghezza, senza mai mostrare il 500 a specchio.
+                    scaleX = 1.25f * abs(cos(2f * PI.toFloat() * turn)).coerceAtLeast(0.04f)
+                    scaleY = 1.25f
+                },
+            )
+        }
+        return
+    }
     Box(Modifier.width(900.dp).height(180.dp), contentAlignment = Alignment.Center) {
         val flashIn = phase(p, 0.53f, 0.58f)
         val flashOut = phase(p, 0.58f, 0.70f)
@@ -500,6 +536,9 @@ private fun ChipMerge() {
         )
     }
 }
+
+/** Punto del ciclo in cui le 100 arrivano in pila (1250 ms − 80 ms HDMI, su 4 s). */
+private const val PILE_AT = 1_170f / 4_000f
 
 @Composable
 private fun Chip(value: String, color: Color, modifier: Modifier = Modifier) {

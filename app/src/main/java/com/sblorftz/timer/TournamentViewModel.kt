@@ -99,6 +99,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         val now = SystemClock.elapsedRealtime()
         val delta = now - lastTick
         lastTick = now
+        sounds.drone(running && level.isChipChange)
         if (!running) return
 
         val before = remainingMs
@@ -108,6 +109,11 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
 
         if (before > 60_000 && after <= 60_000) sounds.oneMinute(toChipChange = nextLevel?.isChipChange == true)
         if (before > 10_000 && after <= 10_000) sounds.tenSeconds()
+        if (level.isChipChange) {
+            // Tic-tac in anticipo come il boom, così cade quando cambia la cifra (00:00 escluso).
+            val second = Math.floorDiv(before - TICK_LEAD_MS - 1, 1_000L)
+            if (second >= 1 && Math.floorDiv(after - TICK_LEAD_MS - 1, 1_000L) < second) sounds.secondTick(second % 2 == 1L)
+        }
         val last = levelIndex == structure.lastIndex
         // Il boom parte in anticipo così il colpo cade sul cambio; la scia passa il centro sul cambio.
         if (before > SOUND_LEAD_MS && after <= SOUND_LEAD_MS) {
@@ -137,12 +143,22 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Tick ogni 100 ms, ma si sveglia giusto in tempo per boom, scia e cambio livello. */
+    /** Tick ogni 100 ms, ma si sveglia giusto in tempo per boom, scia, tic-tac e cambio livello. */
     private fun nextTickMs(): Long {
         if (!running) return 100
         val r = remainingMs
-        val next = listOf(r - SOUND_LEAD_MS, r - SWEEP_LEAD_MS, r).filter { it > 0 }.minOrNull() ?: 1
+        val x = r - TICK_LEAD_MS
+        val toTick = if (level.isChipChange && x > 1_000) x - 1_000 * Math.floorDiv(x - 1, 1_000L) else 0L
+        val next = listOf(r - SOUND_LEAD_MS, r - SWEEP_LEAD_MS, r, toTick).filter { it > 0 }.minOrNull() ?: 1
         return next.coerceIn(1, 100)
+    }
+
+    /** Ultimi 10 s del cambio fiches: le 100 si fermano e resta la 500 che gira. */
+    val chipFinale: Boolean get() = level.isChipChange && remainingMs <= 10_000
+
+    /** Dall'animazione: la pila di fiche da 100 si è formata. */
+    fun onChipPile() {
+        if (running && level.isChipChange && remainingMs > 10_000) sounds.chipPile()
     }
 
     fun startNewTournament() {
@@ -322,5 +338,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         const val SOUND_LEAD_MS = 580L
         /** Metà della corsa della scia (950 ms, vedi SweepFlash): così passa il centro sul cambio. */
         const val SWEEP_LEAD_MS = 475L
+        /** Ritardo audio HDMI: il tic-tac parte un filo prima che cambi la cifra. */
+        const val TICK_LEAD_MS = 80L
     }
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0-beta17
+
+- Cambio fiches: tic-tac a ogni secondo con un ronzio basso sotto
+- Rumore di fiches quando la pila si forma; negli ultimi 10 s resta la 500 che gira
+- Boom del cambio livello con la coda dell'esplosione più lunga
+
 ## 2.0-beta16
 
 - A un minuto dalla pausa la voce dice "tra un minuto, cambio fiches"
