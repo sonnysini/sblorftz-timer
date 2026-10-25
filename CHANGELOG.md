@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0-beta19
+
+- In pausa una pila di fiches che rallenta fino a fermarsi
+- Alla ripresa la stessa pila che parte da ferma e accelera
+
 ## 2.0-beta18
 
 - Cambio fiches: in pausa si fermano anche le animazioni delle fiches

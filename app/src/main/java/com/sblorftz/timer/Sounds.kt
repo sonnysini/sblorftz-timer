@@ -50,6 +50,10 @@ class Sounds(private val context: Context) {
     private val tac = clip(R.raw.tac)
     private val piles = listOf(clip(R.raw.fiches_pila_1), clip(R.raw.fiches_pila_2))
     private var nextPile = 0
+    // Pila che frena (pausa) e che riparte da ferma (ripresa).
+    private val pauseClip = clip(R.raw.fiches_pausa)
+    private val resumeClip = clip(R.raw.fiches_ripresa)
+    private var pauseStream = 0
     private val numbers = HashMap<Int, Clip?>()
 
     // Il ronzio dura 20 s in loop: troppo lungo per SoundPool (limite ~1 MB decodificato).
@@ -78,6 +82,12 @@ class Sounds(private val context: Context) {
     fun chipPile() {
         play(piles[nextPile])
         nextPile = (nextPile + 1) % piles.size
+    }
+
+    /** Pausa / ripresa dal telecomando: premendo a raffica suona solo l'ultimo. */
+    fun pauseToggle(paused: Boolean) {
+        if (pauseStream != 0) pool.stop(pauseStream)
+        pauseStream = play(if (paused) pauseClip else resumeClip)
     }
 
     /** Ronzio sotto il tic-tac: acceso solo col cambio fiches in corso. */
@@ -133,9 +143,7 @@ class Sounds(private val context: Context) {
         }
     }.getOrNull() ?: 0L
 
-    private fun play(c: Clip) {
-        pool.play(c.id, 1f, 1f, 1, 0, 1f)
-    }
+    private fun play(c: Clip): Int = pool.play(c.id, 1f, 1f, 1, 0, 1f)
 
     fun release() {
         cancelQueued()
