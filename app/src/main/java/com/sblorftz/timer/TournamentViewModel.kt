@@ -192,6 +192,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             resumeClock()
         }
+        sounds.pauseToggle(paused = !running)
     }
 
     fun pause() {
