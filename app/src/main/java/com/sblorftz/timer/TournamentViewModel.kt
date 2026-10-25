@@ -110,9 +110,9 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         if (before > 60_000 && after <= 60_000) sounds.oneMinute(toChipChange = nextLevel?.isChipChange == true)
         if (before > 10_000 && after <= 10_000) sounds.tenSeconds()
         if (level.isChipChange) {
-            // Tic-tac in anticipo come il boom, così cade quando cambia la cifra (00:00 escluso).
+            // Tic-tac in anticipo come il boom, così cade quando cambia la cifra; da 00:10 c'è il battito.
             val second = Math.floorDiv(before - TICK_LEAD_MS - 1, 1_000L)
-            if (second >= 1 && Math.floorDiv(after - TICK_LEAD_MS - 1, 1_000L) < second) sounds.secondTick(second % 2 == 1L)
+            if (second >= 11 && Math.floorDiv(after - TICK_LEAD_MS - 1, 1_000L) < second) sounds.secondTick(second % 2 == 1L)
         }
         val last = levelIndex == structure.lastIndex
         // Il boom parte in anticipo così il colpo cade sul cambio; la scia passa il centro sul cambio.
@@ -148,7 +148,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         if (!running) return 100
         val r = remainingMs
         val x = r - TICK_LEAD_MS
-        val toTick = if (level.isChipChange && x > 1_000) x - 1_000 * Math.floorDiv(x - 1, 1_000L) else 0L
+        val toTick = if (level.isChipChange && x > 11_000) x - 1_000 * Math.floorDiv(x - 1, 1_000L) else 0L
         val next = listOf(r - SOUND_LEAD_MS, r - SWEEP_LEAD_MS, r, toTick).filter { it > 0 }.minOrNull() ?: 1
         return next.coerceIn(1, 100)
     }
