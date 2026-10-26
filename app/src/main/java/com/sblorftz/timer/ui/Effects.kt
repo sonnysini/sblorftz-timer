@@ -64,6 +64,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
 import kotlin.math.sin
+import kotlinx.coroutines.delay
 
 // Animazioni portate dai mock ~/tmp/sblorftz/mock/anim/*.html (stessi tempi ed easing).
 
@@ -604,12 +605,39 @@ private fun DrawScope.goldChip() {
     )
 }
 
+// Giro della fiche ferma in home: 2 giri in 900 ms ogni 5 s, poi un alone che si spegne in 450 ms.
+private const val SPIN_FIRST_INTRO = 5_400L
+private const val SPIN_EVERY = 5_000L
+private const val SPIN_MS = 900f
+private const val SPIN_GLOW_MS = 450f
+
+private val EaseInOutCubic = Easing { x -> if (x < 0.5f) 4f * x * x * x else 1f - (-2f * x + 2f).pow(3) / 2f }
+
+/** Larghezza della fiche vista di taglio: mai zero, sennò sparisce. */
+private fun edge(flip: Float) = if (kotlin.math.abs(flip) < 0.06f) (if (flip < 0f) -0.06f else 0.06f) else flip
+
 /**
- * La O di SBLORFTZ: cade dall'alto in verticale, fa 5 giri sull'asse verticale che rallentano
- * fino a fermarsi dritta, poi un alone dorato che si spegne.
+ * Ms dall'inizio del giro in corso (-1 = ferma). Il clock gira solo durante giro e alone:
+ * nelle pause la home non si ridisegna. Si ferma da solo quando la home esce di scena.
  */
 @Composable
-fun IntroChip(time: () -> Float, modifier: Modifier = Modifier) {
+private fun rememberSpin(intro: Boolean): State<Float> = produceState(-1f) {
+    delay(if (intro) SPIN_FIRST_INTRO else SPIN_EVERY)
+    while (true) {
+        val start = withFrameMillis { it }
+        while (value < SPIN_MS + SPIN_GLOW_MS) withFrameMillis { value = (it - start).toFloat() }
+        value = -1f
+        delay(SPIN_EVERY - (SPIN_MS + SPIN_GLOW_MS).toLong())
+    }
+}
+
+/**
+ * La O di SBLORFTZ: cade dall'alto in verticale, fa 5 giri sull'asse verticale che rallentano
+ * fino a fermarsi dritta, poi un alone dorato che si spegne. Ferma in home, ogni 5 s fa 2 giri.
+ */
+@Composable
+fun IntroChip(time: () -> Float, intro: Boolean, modifier: Modifier = Modifier) {
+    val spin by rememberSpin(intro)
     Canvas(
         modifier.graphicsLayer {
             compositingStrategy = CompositingStrategy.Offscreen
@@ -617,12 +645,19 @@ fun IntroChip(time: () -> Float, modifier: Modifier = Modifier) {
             alpha = phase(t, CHIP_FALL, CHIP_FALL + 100f)
             translationY = -900f * (1f - phase(t, CHIP_FALL, CHIP_FALL + 650f, EaseOutCubic))
             val k = phase(t, CHIP_FALL, CHIP_STOP, EaseOutQuart)
-            val flip = cos((1f - k) * PI.toFloat() * 10f)
-            scaleX = if (kotlin.math.abs(flip) < 0.06f) (if (flip < 0f) -0.06f else 0.06f) else flip
+            scaleX = edge(cos((1f - k) * PI.toFloat() * 10f))
+            val s = spin
+            if (s in 0f..SPIN_MS) {
+                val ks = phase(s, 0f, SPIN_MS, EaseInOutCubic)
+                scaleX = edge(cos(ks * PI.toFloat() * 4f))
+                translationY = -13.dp.toPx() * sin(ks * PI.toFloat())
+            }
         },
     ) {
         val t = time()
-        val glow = if (t >= CHIP_STOP) 1f - phase(t, CHIP_STOP, CHIP_STOP + 500f) else 0f
+        val s = spin
+        var glow = if (t >= CHIP_STOP) 1f - phase(t, CHIP_STOP, CHIP_STOP + 500f) else 0f
+        if (s > SPIN_MS) glow = 0.85f * (1f - phase(s, SPIN_MS, SPIN_MS + SPIN_GLOW_MS))
         if (glow > 0f) {
             drawCircle(
                 Brush.radialGradient(
@@ -634,6 +669,11 @@ fun IntroChip(time: () -> Float, modifier: Modifier = Modifier) {
             )
         }
         goldChip()
+        // Di taglio la fiche si scurisce un po', come se girasse davvero.
+        if (s in 0f..SPIN_MS) {
+            val flip = cos(phase(s, 0f, SPIN_MS, EaseInOutCubic) * PI.toFloat() * 4f)
+            drawCircle(Color.Black.copy(alpha = 0.3f * (1f - kotlin.math.abs(flip))), 112f * size.minDimension / 230f)
+        }
     }
 }
 

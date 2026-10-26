@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta21
+
+- In home la fiche della O fa due giri su se stessa ogni 5 secondi
+
 ## 2.0-beta20
 
 - Riquadro di selezione che scivola da una casella all'altra in home, Struttura e menu
