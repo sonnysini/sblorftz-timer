@@ -11,7 +11,8 @@ import android.os.Looper
 /**
  * Suoni del torneo. Gli annunci vocali sono fatti a pezzi messi in fila:
  *  - a 1 minuto: "tra un minuto" + "cambio buio" / "cambio fiches";
- *  - al cambio: boom con dentro "cambio buio" / "cambio fiches", poi piccolo e grande buio.
+ *  - al cambio: boom con dentro "cambio buio" / "cambio fiches", poi piccolo e grande buio;
+ *  - al via di un torneo nuovo: boom con dentro "si comincia".
  * I numeri sono file `vox_n_<valore>` in res/raw (senza silenzio in coda): se un numero
  * manca l'annuncio si ferma lì, senza errori.
  * Durante il cambio fiches: tic-tac a ogni secondo con un ronzio basso sotto, e il rumore
@@ -44,6 +45,7 @@ class Sounds(private val context: Context) {
     private val levelChangeNow = clip(R.raw.level_change_now)
     private val chipChange = clip(R.raw.level_change_fiches)
     private val chipChangeNow = clip(R.raw.level_change_fiches_now)
+    private val tournamentStartClip = clip(R.raw.tournament_start)
     private val levelEnd = clip(R.raw.level_end)
     private val levelEndNow = clip(R.raw.level_end_now)
     private val tic = clip(R.raw.tic)
@@ -108,6 +110,12 @@ class Sounds(private val context: Context) {
         announce(0, listOf(boom))
         // Si dicono solo se ci sono tutti e due: mai "cambio buio: cento" senza il grande.
         if (blinds.size == 2) announce(BOOM_VOICE_END_MS - cut + GAP_VOICE_MS, blinds, gapsMs = listOf(GAP_NUMBERS_MS))
+    }
+
+    /** Boom + "si comincia": parte dal colpo, come i cambi a mano. */
+    fun tournamentStart() {
+        cancelQueued()
+        play(tournamentStartClip)
     }
 
     fun levelEnd(now: Boolean = false) = announce(0, listOf(if (now) levelEndNow else levelEnd))

@@ -168,6 +168,7 @@ class TournamentViewModel(app: Application) : AndroidViewModel(app) {
         checkpointIndex = null
         checkpointRemainingMs = null
         finished = false
+        sounds.tournamentStart()
         resumeClock()
         save()
     }

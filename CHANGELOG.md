@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0-beta22
+
+- Quando parte un torneo nuovo: boom e la voce che dice "Si comincia!"
+
 ## 2.0-beta21
 
 - In home la fiche della O fa due giri su se stessa ogni 5 secondi
